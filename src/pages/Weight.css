@@ -1,0 +1,251 @@
+.weight-page .page-intro {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.card-section {
+  margin-bottom: 2rem;
+}
+
+.card-section .section-heading {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .summary-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary-card h3,
+.summary-card .summary-current {
+  margin: 0 0 0.5rem 0;
+}
+
+.summary-current {
+  font-size: 1.25rem;
+}
+
+.trend-as-of {
+  margin: 0 0 0.5rem 0;
+}
+
+.summary-trends {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.summary-trends dt {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.summary-trends dd {
+  margin: 0;
+}
+
+.summary-measurements {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.summary-measurements dt {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.summary-measurements dd {
+  margin: 0;
+}
+
+.summary-trend-note {
+  margin-top: 0.5rem;
+}
+
+.expand-block {
+  margin-top: 0.75rem;
+}
+
+.expand-trigger {
+  font-size: 0.9rem;
+}
+
+.expanded-table {
+  margin-top: 0.5rem;
+}
+
+.weight-page .trend-summary {
+  margin: 0 0 0.75rem 0;
+}
+
+.trend-up { color: var(--orange); }
+.trend-down { color: var(--green); }
+
+.weight-history,
+.meas-history {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.weight-row,
+.meas-row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.weight-row:last-child,
+.meas-row:last-child {
+  border-bottom: none;
+}
+
+.ai-card .small {
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-key-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.ai-key-row input {
+  flex: 1;
+  max-width: 320px;
+}
+
+.insights-box.local,
+.ai-insights-box {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.insights-box.local .insight-line {
+  margin: 0 0 0.65rem 0;
+}
+
+.insights-box.local .insight-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Campaign tables */
+.campaign-card {
+  overflow-x: auto;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.campaign-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.campaign-table th,
+.campaign-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.campaign-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.campaign-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.campaign-table .total-row {
+  font-weight: 600;
+  background: rgba(63, 185, 80, 0.06);
+  border-top: 2px solid var(--border);
+}
+
+.measurement-delta th,
+.measurement-delta td {
+  text-align: right;
+}
+
+.measurement-delta th:first-child,
+.measurement-delta td:first-child {
+  text-align: left;
+}
+
+.phase-tag {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.4rem;
+  background: var(--surface-hover);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.table-subheading {
+  margin: 1.25rem 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Modal for edit weight / edit measurement */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-overlay .modal {
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-overlay .modal h3 {
+  margin: 0 0 1rem 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}

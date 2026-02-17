@@ -1,0 +1,160 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-center {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  flex: 1;
+}
+
+.nav a {
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.nav a.active {
+  color: var(--accent);
+  background: rgba(63, 185, 80, 0.12);
+}
+
+.main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem 0;
+  text-align: center;
+}
+
+.page-intro {
+  text-align: center;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.page-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.page-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+  margin: 0 0.75rem;
+}
+
+.page-footer a:hover {
+  color: var(--accent);
+}
+
+.page-footer .muted {
+  margin: 0 0.25rem;
+  color: var(--text-muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--accent-dim);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-hover);
+}
+
+.input-group {
+  margin-bottom: 1rem;
+}
+
+.input-group label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  max-width: 280px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.snapshot-red { color: var(--red); }
+.snapshot-orange { color: var(--orange); }
+.snapshot-green { color: var(--green); }

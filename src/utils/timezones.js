@@ -1,0 +1,35 @@
+/**
+ * Curated list of IANA timezones for the Personal page selector.
+ * Label format: city/region with optional (country/note).
+ */
+export const TIMEZONE_OPTIONS = [
+  { value: 'Pacific/Auckland', label: 'New Zealand (Auckland)' },
+  { value: 'Pacific/Chatham', label: 'New Zealand (Chatham Islands)' },
+  { value: 'Australia/Sydney', label: 'Australia (Sydney)' },
+  { value: 'Australia/Melbourne', label: 'Australia (Melbourne)' },
+  { value: 'Australia/Brisbane', label: 'Australia (Brisbane)' },
+  { value: 'Australia/Perth', label: 'Australia (Perth)' },
+  { value: 'Australia/Adelaide', label: 'Australia (Adelaide)' },
+  { value: 'Pacific/Fiji', label: 'Fiji' },
+  { value: 'Pacific/Tongatapu', label: 'Tonga' },
+  { value: 'Asia/Tokyo', label: 'Japan (Tokyo)' },
+  { value: 'Asia/Shanghai', label: 'China (Shanghai)' },
+  { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+  { value: 'Asia/Singapore', label: 'Singapore' },
+  { value: 'Asia/Kolkata', label: 'India (Kolkata)' },
+  { value: 'Europe/London', label: 'United Kingdom (London)' },
+  { value: 'Europe/Paris', label: 'France (Paris)' },
+  { value: 'Europe/Berlin', label: 'Germany (Berlin)' },
+  { value: 'Europe/Amsterdam', label: 'Netherlands (Amsterdam)' },
+  { value: 'America/New_York', label: 'United States (New York)' },
+  { value: 'America/Chicago', label: 'United States (Chicago)' },
+  { value: 'America/Denver', label: 'United States (Denver)' },
+  { value: 'America/Los_Angeles', label: 'United States (Los Angeles)' },
+  { value: 'America/Anchorage', label: 'United States (Anchorage)' },
+  { value: 'Pacific/Honolulu', label: 'United States (Honolulu)' },
+  { value: 'America/Toronto', label: 'Canada (Toronto)' },
+  { value: 'America/Vancouver', label: 'Canada (Vancouver)' },
+  { value: 'America/Sao_Paulo', label: 'Brazil (São Paulo)' },
+  { value: 'Africa/Johannesburg', label: 'South Africa (Johannesburg)' },
+  { value: 'UTC', label: 'UTC' },
+]

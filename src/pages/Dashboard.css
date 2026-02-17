@@ -1,0 +1,87 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-card .big-value {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.dashboard-card .big-value .unit {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.dashboard-card .muted {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.dashboard-card .btn-sm {
+  margin-top: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 1rem;
+}
+
+.pill-next {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--accent);
+}
+
+.snapshot-card .snapshot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.snapshot-badge {
+  text-transform: capitalize;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.snapshot-badge.snapshot-green {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--green);
+}
+
+.snapshot-badge.snapshot-orange {
+  background: rgba(210, 153, 34, 0.2);
+  color: var(--orange);
+}
+
+.snapshot-badge.snapshot-red {
+  background: rgba(248, 81, 73, 0.2);
+  color: var(--red);
+}
