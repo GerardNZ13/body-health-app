@@ -44,7 +44,15 @@ If the project is only on your PC right now, do this once:
    git push origin main
    ```
 
-3. **Whenever you change the app**, push from your machine:
+3. **Whenever you change the app**, push from your machine. Either run:
+   ```powershell
+   npm run push
+   ```
+   (uses the default commit message “Updates”), or with your own message:
+   ```powershell
+   npm run push -- "Describe your change"
+   ```
+   Or do it manually:
    ```powershell
    git add .
    git commit -m "Describe your change"
