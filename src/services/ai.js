@@ -162,17 +162,16 @@ export async function fetchExerciseSuggestion(provider, apiKey, { workoutType, w
   throw new Error(`Unknown provider: ${provider}`)
 }
 
-const LIBRARY_UPDATE_PROMPT = `You are building an exercise library for a holistic body coach app. The user has 4 kg and 6 kg kettlebells, resistance band, wall, chair, bench. Tiers are based on ability and readiness, not body weight: Bronze = building base/recovery/low energy, Gold = intermediate, Platinum = advanced. Include sets and reps for every exercise.
+const LIBRARY_UPDATE_PROMPT = `You are building an exercise library for a holistic body coach app. The user has 4 kg and 6 kg kettlebells, resistance band, wall, chair, bench. Tiers are based on ability and readiness, not body weight: Bronze = building base/recovery/low energy, Gold = intermediate, Platinum = advanced. Include sets and reps for every exercise. Use 3 sets for strength/mobility/cardio wherever possible (consistent "3 set" constant across levels). Mark each exercise with "core": true (primary for the goal) or "core": false (additional builder).
 
-Output ONLY valid JSON, no markdown or other text. Structure exactly (each exercise must have name, description, equipment, sets, reps):
-{"push":{"bronze":[{"name":"...","description":"...","equipment":"...","sets":2,"reps":"8-12"}],"gold":[...],"platinum":[...]},"pull":{"bronze":[...],"gold":[...],"platinum":[...]},"legs":{"bronze":[...],"gold":[...],"platinum":[...]},"mobility":{"bronze":[...],"gold":[...],"platinum":[...]},"cardio":{"bronze":[...],"gold":[...],"platinum":[...]}}
+Output ONLY valid JSON, no markdown or other text. Structure (each exercise: name, description, equipment, sets, reps, core):
+{"push":{"bronze":[{"name":"...","description":"...","equipment":"...","sets":3,"reps":"8-12","core":true}],"gold":[...],"platinum":[...]},"pull":{"bronze":[...],"gold":[...],"platinum":[...]},"legs":{"bronze":[...],"gold":[...],"platinum":[...]},"mobility":{"bronze":[...],"gold":[...],"platinum":[...]},"cardio":{"bronze":[...],"gold":[...],"platinum":[...]}}
 
 Rules:
-- Bronze = building base, recovery, or low energy: lowest impact, seated/wall/band options, 2 sets, lower reps or time (e.g. "8-10", "20-30s hold").
-- Gold = intermediate ability: standard progressions, 3 sets, 8–12 reps (or time-based for cardio/mobility).
-- Platinum = advanced ability: full range, 3–4 sets, 10–15 reps or higher density.
-- 5–8 exercises per tier per category. Variety: Push (chest/shoulders/triceps), Pull (back/biceps), Legs (quads/glutes/calves), Mobility (spine, hips, stretching), Cardio (functional, heart rate).
-- sets = number (e.g. 2 or 3). reps = string: "8-12", "10", "20-30s hold", "2-5 min", "30s on", etc.
+- Bronze: exactly 2–4 exercises per category, ALL core (core: true). Building base, recovery, low energy: lowest impact, seated/wall/band options. 3 sets, lower reps or time (e.g. "8-10", "20-30s hold").
+- Gold: exactly 3–5 exercises per category, MOST core (list 3–4 core first, then 1–2 with core: false as additional builders). Intermediate ability, standard progressions. 3 sets, 8–12 reps (or time-based for cardio/mobility).
+- Platinum: exactly 4–6 exercises per category, two thirds to three quarters core (list 4–5 core first, then 1–2 with core: false). Advanced ability, full range, higher density. 3 sets, 10–15 reps or time-based.
+- sets = 3 wherever possible. reps = string: "8-12", "10", "20-30s hold", "2-5 min", "30s on", etc.
 - Equipment: what is needed (e.g. "4–6 kg KB", "Wall", "Band"). Description: one short line on how to do it or who it suits.`
 
 function parseLibraryFromResponse(text) {

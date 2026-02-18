@@ -39,6 +39,102 @@
   color: var(--red);
 }
 
+/* Hydration: check scale (light → dark) + refills */
+.hydration-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hydration-intro {
+  margin: -0.25rem 0 0;
+}
+
+.hydration-check-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.hydration-scale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.hydration-scale-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.hydration-scale-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.hydration-scale-btn.active {
+  border-color: var(--primary, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--text);
+}
+
+.hydration-scale-dot {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hydration-scale-1 .hydration-scale-dot { background: #e8f4c4; }
+.hydration-scale-2 .hydration-scale-dot { background: #cfe89e; }
+.hydration-scale-3 .hydration-scale-dot { background: #b8c44d; }
+.hydration-scale-4 .hydration-scale-dot { background: #9a8b2a; }
+.hydration-scale-5 .hydration-scale-dot { background: #6b5a1e; }
+
+.hydration-scale-label {
+  white-space: nowrap;
+}
+
+.hydration-refills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 140px;
+}
+
+.hydration-refills label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.hydration-refills input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+}
+
+.hydration-insight {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
 .targets-form {
   display: flex;
   flex-wrap: wrap;
@@ -157,10 +253,33 @@
   color: var(--orange, #d29922);
 }
 
-.favourites-block {
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+.add-food-section .add-food-pivot {
+  margin-top: 0.25rem;
+}
+
+.search-panel .search-intro {
+  margin-bottom: 0.5rem;
+}
+
+.pivot-trigger {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.btn-back {
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.favourites-panel .favourites-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+}
+
+.favourites-panel .favourites-list {
+  margin-top: 0.5rem;
 }
 
 .favourites-title {
@@ -171,6 +290,47 @@
 
 .search-intro {
   margin-bottom: 0.5rem;
+}
+
+/* Last 7 days — click to expand */
+.week-log-section {
+  padding: 0;
+  overflow: hidden;
+}
+
+.week-log-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.week-log-toggle:hover {
+  background: var(--border);
+}
+
+.week-log-title {
+  font-weight: 600;
+}
+
+.week-log-chevron {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.week-log-section .week-rows {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0;
 }
 
 .qty-input {
@@ -192,6 +352,31 @@
 
 .totals-bar strong {
   color: var(--accent);
+}
+
+.gentle-nudges {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--border);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+
+.gentle-nudges-intro {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.gentle-nudges-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gentle-nudge {
+  padding: 0.2rem 0;
+  font-style: italic;
 }
 
 .today-entries {

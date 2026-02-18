@@ -1,5 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { useHealth } from './store/HealthContext'
+import ProfileGate from './components/ProfileGate'
 import Dashboard from './pages/Dashboard'
 import Weight from './pages/Weight'
 import Exercise from './pages/Exercise'
@@ -10,6 +12,10 @@ import Personal from './pages/Personal'
 import './App.css'
 
 export default function App() {
+  const { profileCode } = useHealth()
+  if (!profileCode) {
+    return <ProfileGate />
+  }
   return (
     <BrowserRouter>
       <div className="app">

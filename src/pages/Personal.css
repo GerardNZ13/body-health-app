@@ -37,3 +37,47 @@
   font-weight: 600;
   margin: 0.5rem 0 0;
 }
+
+.activity-note {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.profile-section .profile-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.profile-section .profile-code {
+  padding: 0.35rem 0.6rem;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+.profile-switch-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.profile-switch-input {
+  padding: 0.35rem 0.5rem;
+  width: 140px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profile-section .profile-leave {
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+}

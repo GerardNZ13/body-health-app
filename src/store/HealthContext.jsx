@@ -1,48 +1,35 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 
 const STORAGE_KEY = 'body-health-app-data'
+const STORAGE_KEY_CURRENT = STORAGE_KEY + '-current'
 
-/** Seed data: Log 1 – Weight & Mass Campaign */
-const SEED_LOG1_WEIGHT_CAMPAIGN = [
-  { date: '2024-12-01', phase: 'The Peak', value: 149.9, note: '' },
-  { date: '2024-12-26', phase: 'Boxing Day', value: 144.0, note: '' },
-  { date: '2025-01-04', phase: 'New Year', value: 141.0, note: '' },
-  { date: '2025-01-11', phase: 'The Stall', value: 141.0, note: '' },
-  { date: '2025-01-18', phase: 'The "Click"', value: 138.8, note: '' },
-  { date: '2025-01-25', phase: 'Realism Day', value: 137.4, note: '' },
-  { date: '2025-02-01', phase: 'The Grinder', value: 136.7, note: '' },
-  { date: '2025-02-08', phase: 'The Sculpt', value: 135.7, note: '' },
-  { date: '2025-02-15', phase: 'The Milestone', value: 134.9, note: '' },
-]
+function dataKey(code) {
+  return `${STORAGE_KEY}-data-${code}`
+}
 
-/** Seed data: Log 2 – Volume & Measurement Delta (area × date grid as flat entries) */
-const SEED_LOG2_MEASUREMENT_DELTA = (() => {
-  const dates = ['2025-01-18', '2025-01-25', '2025-02-01', '2025-02-08', '2025-02-15']
-  const rows = [
-    ['Belly', [143, 143, 141.5, 139, 138]],
-    ['Hips/Butt', [139, 136, 134, 136, 134]],
-    ['Chest', [125, 123, 121, 119.5, 119]],
-    ['Upper Arm', [35, 34.5, 35, 35, 35]],
-  ]
-  const entries = []
-  rows.forEach(([name, values]) => {
-    dates.forEach((date, i) => {
-      entries.push({ date, name, value: values[i], unit: 'cm' })
-    })
-  })
-  return entries.sort((a, b) => new Date(a.date) - new Date(b.date))
-})()
+/** Generate a short unique profile code (8 chars, easy to type: A–Z + 2–9). */
+export function generateProfileCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
 
 /**
  * Store schema aligned to the two log tables:
  * - Log 1: Weight & Mass Campaign → log1WeightCampaign[]
  * - Log 2: Volume & Measurement Delta → log2MeasurementDelta[]
+ * No seed data: each person starts with empty logs for a unique experience.
+ * profileCode: null = no profile selected (show gate); string = current profile, data in localStorage under data-{code}.
  */
 const defaultState = {
+  profileCode: null,
   /** Log 1: The Weight & Mass Campaign. Each entry: { date, phase, value, note } */
-  log1WeightCampaign: SEED_LOG1_WEIGHT_CAMPAIGN,
+  log1WeightCampaign: [],
   /** Log 2: The Volume & Measurement Delta. Each entry: { date, name, value, unit } */
-  log2MeasurementDelta: SEED_LOG2_MEASUREMENT_DELTA,
+  log2MeasurementDelta: [],
   exerciseGoals: {
     stepsDaily: 6000,
     pplRotation: [],
@@ -78,54 +65,135 @@ const defaultState = {
     heightCm: null,
     startingWeightKg: null,
     goalWeightKg: null,
-    goalExerciseLevel: 'Gold', // Bronze | Gold | Platinum
+    goalExerciseLevel: 'Gold', // Bronze | Gold | Platinum — activity level you want to be at
+    /** Desired weight loss rate when in deficit: Bronze 0–0.5, Gold 0.5–1, Platinum 1+ kg/week */
+    desiredLossRateTier: 'Gold',
     /** IANA timezone e.g. Pacific/Auckland; used for "today" and all date display. */
     timeZone: 'Pacific/Auckland',
   },
 }
 
+/** Migrate parsed blob to full state shape (no profileCode in blob). */
+function migrateParsedState(parsed) {
+  const migrated = { ...defaultState, ...parsed }
+  if (parsed.personalDetails && typeof parsed.personalDetails === 'object') {
+    migrated.personalDetails = { ...defaultState.personalDetails, ...parsed.personalDetails }
+  }
+  if (parsed.exerciseGoals) {
+    migrated.exerciseGoals = {
+      ...defaultState.exerciseGoals,
+      ...parsed.exerciseGoals,
+      equipment: Array.isArray(parsed.exerciseGoals.equipment) ? parsed.exerciseGoals.equipment : [],
+      autoSyncSteps: !!parsed.exerciseGoals.autoSyncSteps,
+      stepsLastSyncedAt: parsed.exerciseGoals.stepsLastSyncedAt ?? null,
+    }
+  }
+  if (parsed.weight && !parsed.log1WeightCampaign) {
+    migrated.log1WeightCampaign = parsed.weight
+  }
+  if (parsed.measurements && !parsed.log2MeasurementDelta) {
+    migrated.log2MeasurementDelta = parsed.measurements
+  }
+  if (!Array.isArray(migrated.log1WeightCampaign)) {
+    migrated.log1WeightCampaign = []
+  }
+  if (!Array.isArray(migrated.log2MeasurementDelta)) {
+    migrated.log2MeasurementDelta = []
+  }
+  if (!Array.isArray(migrated.nutritionFavourites)) {
+    migrated.nutritionFavourites = []
+  }
+  return migrated
+}
+
+/** True if profile has no meaningful data (recovery candidate from legacy). */
+function isProfileEmpty(state) {
+  const hasWeight = state.log1WeightCampaign?.length > 0
+  const hasNutrition = state.nutritionLogs?.length > 0
+  const hasExercise = state.exerciseLogs?.length > 0
+  const hasPersonal = state.personalDetails && (
+    state.personalDetails.age != null ||
+    state.personalDetails.heightCm != null ||
+    state.personalDetails.goalWeightKg != null
+  )
+  return !hasWeight && !hasNutrition && !hasExercise && !hasPersonal
+}
+
+/** Restore from legacy key into state, preserve profileCode, remove legacy key. */
+function restoreFromLegacy(code) {
+  const legacyRaw = localStorage.getItem(STORAGE_KEY)
+  if (!legacyRaw) return null
+  try {
+    const parsed = JSON.parse(legacyRaw)
+    const migrated = migrateParsedState(parsed)
+    const legacyKey = localStorage.getItem(STORAGE_KEY + '-apikey')
+    const legacyProvider = localStorage.getItem(STORAGE_KEY + '-ai-provider')
+    if (legacyKey) migrated.aiApiKey = legacyKey
+    if (legacyProvider === 'openai' || legacyProvider === 'gemini') migrated.aiProvider = legacyProvider
+    const toSave = {
+      log1WeightCampaign: migrated.log1WeightCampaign,
+      log2MeasurementDelta: migrated.log2MeasurementDelta,
+      exerciseGoals: migrated.exerciseGoals,
+      exerciseLogs: migrated.exerciseLogs,
+      nutritionLogs: migrated.nutritionLogs,
+      nutritionTargets: migrated.nutritionTargets,
+      nutritionFavourites: migrated.nutritionFavourites,
+      exerciseSuggestion: migrated.exerciseSuggestion,
+      customExerciseLibrary: migrated.customExerciseLibrary,
+      lastWorkoutResult: migrated.lastWorkoutResult,
+      personalDetails: migrated.personalDetails,
+      aiApiKey: migrated.aiApiKey,
+      aiProvider: migrated.aiProvider,
+    }
+    localStorage.setItem(dataKey(code), JSON.stringify(toSave))
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (_) {}
+    return { ...migrated, profileCode: code }
+  } catch (_) {
+    return null
+  }
+}
+
+/** Load state for initial render: use current profile code and data from localStorage. */
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      // Migrate old keys to log table names
-      const migrated = { ...defaultState, ...parsed }
-      if (parsed.personalDetails && typeof parsed.personalDetails === 'object') {
-        migrated.personalDetails = { ...defaultState.personalDetails, ...parsed.personalDetails }
-      }
-      if (parsed.exerciseGoals) {
-        migrated.exerciseGoals = {
-          ...defaultState.exerciseGoals,
-          ...parsed.exerciseGoals,
-          equipment: Array.isArray(parsed.exerciseGoals.equipment) ? parsed.exerciseGoals.equipment : [],
-          autoSyncSteps: !!parsed.exerciseGoals.autoSyncSteps,
-          stepsLastSyncedAt: parsed.exerciseGoals.stepsLastSyncedAt ?? null,
+    let code = localStorage.getItem(STORAGE_KEY_CURRENT)
+    if (!code || !code.trim()) {
+      // No profile code: try to migrate legacy single-key data into a new profile
+      const legacyRaw = localStorage.getItem(STORAGE_KEY)
+      if (legacyRaw) {
+        const restored = restoreFromLegacy(generateProfileCode())
+        if (restored) {
+          localStorage.setItem(STORAGE_KEY_CURRENT, restored.profileCode)
+          return restored
         }
       }
-      if (parsed.weight && !parsed.log1WeightCampaign) {
-        migrated.log1WeightCampaign = parsed.weight
-      }
-      if (parsed.measurements && !parsed.log2MeasurementDelta) {
-        migrated.log2MeasurementDelta = parsed.measurements
-      }
-      // If logs are empty, use seed as starting dataset
-      if (!migrated.log1WeightCampaign?.length) {
-        migrated.log1WeightCampaign = SEED_LOG1_WEIGHT_CAMPAIGN
-      }
-      if (!migrated.log2MeasurementDelta?.length) {
-        migrated.log2MeasurementDelta = SEED_LOG2_MEASUREMENT_DELTA
-      }
-      if (!Array.isArray(migrated.nutritionFavourites)) {
-        migrated.nutritionFavourites = []
-      }
-      return migrated
+      return { ...defaultState, profileCode: null }
     }
+    const raw = localStorage.getItem(dataKey(code))
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const migrated = migrateParsedState(parsed)
+      // Recovery: if current profile is empty but old key still has data, restore it
+      if (isProfileEmpty(migrated) && localStorage.getItem(STORAGE_KEY)) {
+        const restored = restoreFromLegacy(code)
+        if (restored) return restored
+      }
+      return { ...migrated, profileCode: code }
+    }
+    // Code exists but no data yet: try to restore from legacy (e.g. they created profile before migration ran)
+    if (localStorage.getItem(STORAGE_KEY)) {
+      const restored = restoreFromLegacy(code)
+      if (restored) return restored
+    }
+    return { ...defaultState, profileCode: code }
   } catch (_) {}
-  return defaultState
+  return { ...defaultState, profileCode: null }
 }
 
 function saveState(state) {
+  if (!state.profileCode) return
   try {
     const toSave = {
       log1WeightCampaign: state.log1WeightCampaign,
@@ -139,8 +207,11 @@ function saveState(state) {
       customExerciseLibrary: state.customExerciseLibrary,
       lastWorkoutResult: state.lastWorkoutResult,
       personalDetails: state.personalDetails,
+      aiApiKey: state.aiApiKey,
+      aiProvider: state.aiProvider,
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
+    localStorage.setItem(dataKey(state.profileCode), JSON.stringify(toSave))
+    localStorage.setItem(STORAGE_KEY_CURRENT, state.profileCode)
   } catch (_) {}
 }
 
@@ -228,6 +299,28 @@ function reducer(state, action) {
           )
         })(),
       }
+    case 'SET_DAY_HYDRATION': {
+      const { date, hydrationCheck, refills } = action.payload
+      const existing = state.nutritionLogs.find((l) => l.date === date)
+      const next = {
+        hydrationCheck: hydrationCheck !== undefined ? hydrationCheck : existing?.hydrationCheck,
+        refills: refills !== undefined ? refills : existing?.refills,
+      }
+      if (existing) {
+        return {
+          ...state,
+          nutritionLogs: state.nutritionLogs.map((l) =>
+            l.date === date ? { ...l, ...next } : l
+          ),
+        }
+      }
+      return {
+        ...state,
+        nutritionLogs: [...state.nutritionLogs, { date, entries: [], ...next }].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        ),
+      }
+    }
     case 'SET_NUTRITION_TARGETS':
       return { ...state, nutritionTargets: { ...state.nutritionTargets, ...action.payload } }
     case 'ADD_NUTRITION_FAVOURITE': {
@@ -258,6 +351,12 @@ function reducer(state, action) {
       return { ...state, lastWorkoutResult: action.payload }
     case 'SET_PERSONAL_DETAILS':
       return { ...state, personalDetails: { ...state.personalDetails, ...action.payload } }
+    case 'CREATE_PROFILE':
+      return { ...defaultState, profileCode: action.payload.code }
+    case 'LOAD_PROFILE':
+      return { ...defaultState, ...action.payload.state, profileCode: action.payload.code }
+    case 'CLEAR_PROFILE':
+      return { ...defaultState, profileCode: null }
     case 'REHYDRATE':
       return { ...defaultState, ...action.payload }
     default:
@@ -267,22 +366,6 @@ function reducer(state, action) {
 
 export function HealthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, defaultState, loadState)
-
-  useEffect(() => {
-    let key = localStorage.getItem(STORAGE_KEY + '-apikey')
-    const defaultKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY
-      ? import.meta.env.VITE_GEMINI_API_KEY.trim()
-      : ''
-    if (!key && defaultKey) {
-      key = defaultKey
-      localStorage.setItem(STORAGE_KEY + '-apikey', key)
-      dispatch({ type: 'SET_AI_KEY', payload: key })
-    } else if (key) {
-      dispatch({ type: 'SET_AI_KEY', payload: key })
-    }
-    const provider = localStorage.getItem(STORAGE_KEY + '-ai-provider')
-    if (provider === 'openai' || provider === 'gemini') dispatch({ type: 'SET_AI_PROVIDER', payload: provider })
-  }, [])
 
   useEffect(() => {
     saveState(state)
@@ -314,6 +397,9 @@ export function HealthProvider({ children }) {
   const addNutritionEntry = useCallback((date, entry) => {
     dispatch({ type: 'ADD_NUTRITION_ENTRY', date, entry })
   }, [])
+  const setDayHydration = useCallback((date, payload) => {
+    dispatch({ type: 'SET_DAY_HYDRATION', payload: { date, ...payload } })
+  }, [])
   const setNutritionTargets = useCallback((payload) => {
     dispatch({ type: 'SET_NUTRITION_TARGETS', payload })
   }, [])
@@ -324,15 +410,39 @@ export function HealthProvider({ children }) {
     dispatch({ type: 'REMOVE_NUTRITION_FAVOURITE', payload: idOrBarcode })
   }, [])
   const setAiApiKey = useCallback((key) => {
-    if (key) localStorage.setItem(STORAGE_KEY + '-apikey', key)
-    else localStorage.removeItem(STORAGE_KEY + '-apikey')
-    dispatch({ type: 'SET_AI_KEY', payload: key })
+    dispatch({ type: 'SET_AI_KEY', payload: key || '' })
   }, [])
   const setAiProvider = useCallback((provider) => {
     if (provider === 'openai' || provider === 'gemini') {
-      localStorage.setItem(STORAGE_KEY + '-ai-provider', provider)
       dispatch({ type: 'SET_AI_PROVIDER', payload: provider })
     }
+  }, [])
+
+  const createProfile = useCallback((code) => {
+    dispatch({ type: 'CREATE_PROFILE', payload: { code: code.trim().toUpperCase() } })
+  }, [])
+  const loadProfile = useCallback((code) => {
+    const c = code.trim().toUpperCase()
+    if (!c) return false
+    try {
+      const raw = localStorage.getItem(dataKey(c))
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        dispatch({ type: 'LOAD_PROFILE', payload: { code: c, state: migrateParsedState(parsed) } })
+        return true
+      }
+      // No data for this code: still switch to it with empty state (new device / new profile)
+      dispatch({ type: 'CREATE_PROFILE', payload: { code: c } })
+      return true
+    } catch (_) {
+      return false
+    }
+  }, [])
+  const clearProfile = useCallback(() => {
+    dispatch({ type: 'CLEAR_PROFILE' })
+    try {
+      localStorage.removeItem(STORAGE_KEY_CURRENT)
+    } catch (_) {}
   }, [])
   const setAiInsights = useCallback((insights) => {
     dispatch({ type: 'SET_AI_INSIGHTS', payload: insights })
@@ -366,6 +476,7 @@ export function HealthProvider({ children }) {
     logExercise,
     updateExerciseLog,
     addNutritionEntry,
+    setDayHydration,
     setNutritionTargets,
     addNutritionFavourite,
     removeNutritionFavourite,
@@ -376,6 +487,9 @@ export function HealthProvider({ children }) {
     setExerciseLibrary,
     setLastWorkoutResult,
     setPersonalDetails,
+    createProfile,
+    loadProfile,
+    clearProfile,
   }
 
   return <HealthContext.Provider value={value}>{children}</HealthContext.Provider>

@@ -1,0 +1,79 @@
+.profile-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg, #f5f5f5);
+}
+
+.profile-gate-card {
+  max-width: 420px;
+  width: 100%;
+}
+
+.profile-gate-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.profile-gate-intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.profile-gate-actions {
+  margin-bottom: 1rem;
+}
+
+.profile-gate-divider {
+  margin: 1.25rem 0;
+  text-align: center;
+}
+
+.profile-gate-load {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-gate-input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.profile-gate-error {
+  margin: 0.75rem 0 0;
+  color: var(--red, #c00);
+  font-size: 0.875rem;
+}
+
+.profile-gate-new {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-gate-code-label {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.profile-gate-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-gate-code {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+}

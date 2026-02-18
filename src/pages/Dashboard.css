@@ -1,3 +1,86 @@
+.holistic-summary {
+  margin-bottom: 1.25rem;
+}
+
+.holistic-summary h3 {
+  margin-bottom: 0.25rem;
+}
+
+.holistic-intro {
+  margin-bottom: 0.75rem;
+}
+
+.holistic-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1.25rem;
+  align-items: baseline;
+  font-size: 0.95rem;
+}
+
+.holistic-grid dt {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.holistic-grid dd {
+  margin: 0;
+}
+
+.holistic-grid dd .snapshot-badge {
+  margin: 0 0.15rem;
+}
+
+.other-insights {
+  margin-bottom: 1.25rem;
+  border-left: 4px solid var(--accent);
+}
+
+.other-insights h3 {
+  margin-bottom: 0.25rem;
+}
+
+.other-insights-intro {
+  margin-bottom: 0.75rem;
+}
+
+.other-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.other-insight-item {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.45;
+}
+
+.other-insight-item:last-child {
+  border-bottom: none;
+}
+
+.other-insight-meta {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.other-insight-meta strong {
+  color: var(--text);
+}
+
+.other-insight-timeframe {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.other-insight-message {
+  margin: 0;
+  font-style: italic;
+  color: var(--text);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
