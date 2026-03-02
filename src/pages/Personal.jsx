@@ -15,6 +15,9 @@ const LOSS_RATE_OPTIONS = [
 ]
 const DEFAULT_TIMEZONE = 'Pacific/Auckland'
 
+/** Set to true to show the Steps from phone (Google Fit) section again. */
+const SHOW_GOOGLE_FIT = false
+
 /** Equipment options for workout suggestions (same as used on Exercise for filtering). */
 const EQUIPMENT_OPTIONS = [
   { id: 'kb4', label: 'Kettlebell 4kg', value: 'Kettlebell 4kg' },
@@ -386,6 +389,7 @@ export default function Personal() {
         </div>
       </section>
 
+      {SHOW_GOOGLE_FIT && (
       <section className="card steps-connect-card">
         <h3>Steps from phone (Google Fit)</h3>
         <p className="muted small">
@@ -417,6 +421,7 @@ export default function Personal() {
         )}
         {stepsSyncError && <p className="small snapshot-red">{stepsSyncError}</p>}
       </section>
+      )}
 
       {recommendedRangeText && (
         <section className="card">

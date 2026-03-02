@@ -3,7 +3,7 @@ import { useHealth } from '../store/HealthContext'
 import { useDateUtils } from '../hooks/useDateUtils'
 import { getWorkoutFromLibrary, formatWorkoutForDisplay, deriveEffectiveTier } from '../utils/workoutFromLibrary'
 import { getWorkLevel, getWorkLevelScale, getSuggestFullRestDay } from '../utils/workLevel'
-import { fetchExerciseSuggestion, fetchAndUpdateExerciseLibrary } from '../services/ai'
+import { fetchExerciseSuggestion } from '../services/ai'
 import PageFooter from '../components/PageFooter'
 import BodyCheckIn from '../components/BodyCheckIn'
 import './Exercise.css'
@@ -25,7 +25,6 @@ export default function Exercise() {
     logExercise,
     updateExerciseLog,
     setExerciseSuggestion,
-    setExerciseLibrary,
     setLastWorkoutResult,
     setBodyCheckIn,
     aiApiKey,
@@ -55,9 +54,6 @@ export default function Exercise() {
   const [suggestionType, setSuggestionType] = useState('Push')
   const [suggestionLoading, setSuggestionLoading] = useState(false)
   const [suggestionError, setSuggestionError] = useState('')
-  const [updateLibraryLoading, setUpdateLibraryLoading] = useState(false)
-  const [updateLibraryError, setUpdateLibraryError] = useState('')
-  const [updateLibrarySuccess, setUpdateLibrarySuccess] = useState(false)
   const [quickLogChecked, setQuickLogChecked] = useState({})
   const [quickLogSets, setQuickLogSets] = useState({})
   const [quickLogDurationMins, setQuickLogDurationMins] = useState('')
@@ -133,31 +129,6 @@ export default function Exercise() {
       setSuggestionLoading(false)
     }
   }, [aiApiKey, aiProvider, suggestionType, weight, exerciseLogs, todayLog?.steps, workLevel, setExerciseSuggestion])
-
-  const handleUpdateWorkoutSuggestions = useCallback(async () => {
-    const key = aiApiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('body-health-app-data-apikey') : null)
-    if (!key) {
-      setUpdateLibraryError('Add and save an API key on Weight & Body first.')
-      return
-    }
-    setUpdateLibraryError('')
-    setUpdateLibrarySuccess(false)
-    setUpdateLibraryLoading(true)
-    try {
-      const library = await fetchAndUpdateExerciseLibrary(aiProvider, key, userEquipment)
-      if (library) {
-        setExerciseLibrary(library)
-        setUpdateLibrarySuccess(true)
-        setTimeout(() => setUpdateLibrarySuccess(false), 3000)
-      } else {
-        setUpdateLibraryError('AI response could not be parsed as a valid exercise library. Try again.')
-      }
-    } catch (err) {
-      setUpdateLibraryError(err.message || 'Failed to update library.')
-    } finally {
-      setUpdateLibraryLoading(false)
-    }
-  }, [aiApiKey, aiProvider, userEquipment, setExerciseLibrary])
 
   const handleLogSteps = (e) => {
     e.preventDefault()
@@ -332,7 +303,7 @@ export default function Exercise() {
                 <p className="muted small suggestion-meta">
                   Next suggested session: <strong className="pill pill-next">{nextSuggested}</strong>
                   {' · '}
-                  Library: <strong>{customExerciseLibrary ? 'AI-updated' : 'Baseline'}</strong>
+                  Library: <strong>{customExerciseLibrary ? 'Custom' : 'Baseline'}</strong>
                 </p>
               </div>
             <p className="muted small">
@@ -357,19 +328,6 @@ export default function Exercise() {
                 {exerciseSuggestion}
               </div>
             )}
-            <div className="update-library-row">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleUpdateWorkoutSuggestions}
-                disabled={updateLibraryLoading}
-              >
-                {updateLibraryLoading ? 'Searching & updating…' : 'Update workout suggestions'}
-              </button>
-              <span className="muted small">Uses AI to search and refresh the exercise library (saved in browser).</span>
-            </div>
-            {updateLibraryError && <p className="small snapshot-red">{updateLibraryError}</p>}
-            {updateLibrarySuccess && <p className="small snapshot-green">Library updated. Get workout will now use the new list.</p>}
             <p className="pivot-trigger muted small">
               <button type="button" className="btn-link" onClick={() => setLogWorkoutOpen(true)}>
                 Log the workout
