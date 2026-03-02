@@ -47,6 +47,14 @@ To publish as a GitHub-hosted page (e.g. `https://<user>.github.io/body-health-a
 
 3. **Repo name**: If your repo is not named `body-health-app`, set `BASE_PATH` to `/<your-repo-name>/` when building.
 
+**Still a blank page?** Open the **exact** project URL (not your user root):
+
+- **Project site:** `https://<your-github-username>.github.io/body-health-app/`  
+  (replace `body-health-app` with your repo name if different)
+- If you open `https://<your-username>.github.io/` you’ll get a different site or 404.
+
+Then open DevTools (F12) → **Console** and **Network**. If you see "Loading…" but no app, check for red errors (e.g. 404 on JS/CSS). If the page is completely blank with no "Loading…", the HTML may not be loading (wrong URL or deploy not finished).
+
 ## Android APK
 
 You can build the same app as an **Android APK** (runs in a WebView, same behaviour as the browser). See **[ANDROID_APK.md](ANDROID_APK.md)** for build and run steps. Requires Node, Android Studio, and `npm run cap:sync` then open `android-app` in Android Studio.
