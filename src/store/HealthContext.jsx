@@ -32,6 +32,12 @@ const defaultState = {
   log2MeasurementDelta: [],
   exerciseGoals: {
     stepsDaily: 6000,
+    /** Activity ring: daily goal in kcal (e.g. 300) */
+    activityKcalDaily: 300,
+    /** Workout time ring: daily goal in minutes (e.g. 30) */
+    workoutMinsDaily: 30,
+    /** Movement hourly ring: daily goal in hours (e.g. 8) */
+    movementHoursDaily: 8,
     pplRotation: [],
     customGoals: [],
     equipment: [],
@@ -40,7 +46,7 @@ const defaultState = {
     /** Last time steps were synced from Google Fit (ISO string) */
     stepsLastSyncedAt: null,
   },
-  exerciseLogs: [], // { date, steps, workoutType?, tier?, exercisesDone?: [{ tier, exerciseName, sets }] }
+  exerciseLogs: [], // { date, steps?, activityKcal?, workoutMins?, movementHours?, workoutType?, tier?, exercisesDone? }
   /** Last "Get workout" result (structured) for quick-log from suggestion */
   lastWorkoutResult: null,
   nutritionLogs: [], // { date, entries: [{ name, barcode?, calories, protein, carbs, fat, ... }] }
@@ -52,6 +58,8 @@ const defaultState = {
   },
   /** Favourite foods for quick-add on Nutrition page */
   nutritionFavourites: [],
+  /** Meal combos: named sets of foods added together. Each combo: { id, name, items: [{ name, calories, protein, carbs?, fat? }] } */
+  nutritionMealCombos: [],
   aiApiKey: '',
   aiProvider: 'gemini',
   aiInsights: null,
@@ -59,6 +67,8 @@ const defaultState = {
   exerciseSuggestion: null,
   /** Custom exercise library from "Update workout suggestions" (AI). Same shape as exercises.js. Null = use baseline. */
   customExerciseLibrary: null,
+  /** Body check-ins: one per day. Each entry: { date: 'YYYY-MM-DD', regions: { [regionId]: number 0-10 } } */
+  bodyCheckIns: [],
   /** Personal details: used for BMI, rate-of-loss, insights and AI. */
   personalDetails: {
     age: null,
@@ -86,6 +96,9 @@ function migrateParsedState(parsed) {
       equipment: Array.isArray(parsed.exerciseGoals.equipment) ? parsed.exerciseGoals.equipment : [],
       autoSyncSteps: !!parsed.exerciseGoals.autoSyncSteps,
       stepsLastSyncedAt: parsed.exerciseGoals.stepsLastSyncedAt ?? null,
+      activityKcalDaily: parsed.exerciseGoals.activityKcalDaily ?? defaultState.exerciseGoals.activityKcalDaily,
+      workoutMinsDaily: parsed.exerciseGoals.workoutMinsDaily ?? defaultState.exerciseGoals.workoutMinsDaily,
+      movementHoursDaily: parsed.exerciseGoals.movementHoursDaily ?? defaultState.exerciseGoals.movementHoursDaily,
     }
   }
   if (parsed.weight && !parsed.log1WeightCampaign) {
@@ -102,6 +115,12 @@ function migrateParsedState(parsed) {
   }
   if (!Array.isArray(migrated.nutritionFavourites)) {
     migrated.nutritionFavourites = []
+  }
+  if (!Array.isArray(migrated.nutritionMealCombos)) {
+    migrated.nutritionMealCombos = []
+  }
+  if (!Array.isArray(migrated.bodyCheckIns)) {
+    migrated.bodyCheckIns = []
   }
   return migrated
 }
@@ -135,9 +154,11 @@ function restoreFromLegacy(code) {
       log2MeasurementDelta: migrated.log2MeasurementDelta,
       exerciseGoals: migrated.exerciseGoals,
       exerciseLogs: migrated.exerciseLogs,
+      bodyCheckIns: migrated.bodyCheckIns || [],
       nutritionLogs: migrated.nutritionLogs,
       nutritionTargets: migrated.nutritionTargets,
       nutritionFavourites: migrated.nutritionFavourites,
+      nutritionMealCombos: migrated.nutritionMealCombos || [],
       exerciseSuggestion: migrated.exerciseSuggestion,
       customExerciseLibrary: migrated.customExerciseLibrary,
       lastWorkoutResult: migrated.lastWorkoutResult,
@@ -200,9 +221,11 @@ function saveState(state) {
       log2MeasurementDelta: state.log2MeasurementDelta,
       exerciseGoals: state.exerciseGoals,
       exerciseLogs: state.exerciseLogs,
+      bodyCheckIns: state.bodyCheckIns || [],
       nutritionLogs: state.nutritionLogs,
       nutritionTargets: state.nutritionTargets,
       nutritionFavourites: state.nutritionFavourites,
+      nutritionMealCombos: state.nutritionMealCombos,
       exerciseSuggestion: state.exerciseSuggestion,
       customExerciseLibrary: state.customExerciseLibrary,
       lastWorkoutResult: state.lastWorkoutResult,
@@ -337,6 +360,19 @@ function reducer(state, action) {
           (f) => f.id !== action.payload && f.barcode !== action.payload
         ),
       }
+    case 'ADD_MEAL_COMBO': {
+      const combo = action.payload
+      const id = combo.id || `combo-${Date.now()}`
+      return {
+        ...state,
+        nutritionMealCombos: [...(state.nutritionMealCombos || []), { ...combo, id }],
+      }
+    }
+    case 'REMOVE_MEAL_COMBO':
+      return {
+        ...state,
+        nutritionMealCombos: (state.nutritionMealCombos || []).filter((c) => c.id !== action.payload),
+      }
     case 'SET_AI_KEY':
       return { ...state, aiApiKey: action.payload }
     case 'SET_AI_PROVIDER':
@@ -349,6 +385,12 @@ function reducer(state, action) {
       return { ...state, customExerciseLibrary: action.payload }
     case 'SET_LAST_WORKOUT_RESULT':
       return { ...state, lastWorkoutResult: action.payload }
+    case 'SET_BODY_CHECK_IN': {
+      const { date, regions } = action.payload
+      const rest = (state.bodyCheckIns || []).filter((e) => e.date !== date)
+      const next = Object.keys(regions).length > 0 ? [...rest, { date, regions }] : rest
+      return { ...state, bodyCheckIns: next }
+    }
     case 'SET_PERSONAL_DETAILS':
       return { ...state, personalDetails: { ...state.personalDetails, ...action.payload } }
     case 'CREATE_PROFILE':
@@ -409,6 +451,12 @@ export function HealthProvider({ children }) {
   const removeNutritionFavourite = useCallback((idOrBarcode) => {
     dispatch({ type: 'REMOVE_NUTRITION_FAVOURITE', payload: idOrBarcode })
   }, [])
+  const addMealCombo = useCallback((combo) => {
+    dispatch({ type: 'ADD_MEAL_COMBO', payload: combo })
+  }, [])
+  const removeMealCombo = useCallback((id) => {
+    dispatch({ type: 'REMOVE_MEAL_COMBO', payload: id })
+  }, [])
   const setAiApiKey = useCallback((key) => {
     dispatch({ type: 'SET_AI_KEY', payload: key || '' })
   }, [])
@@ -456,6 +504,9 @@ export function HealthProvider({ children }) {
   const setLastWorkoutResult = useCallback((result) => {
     dispatch({ type: 'SET_LAST_WORKOUT_RESULT', payload: result })
   }, [])
+  const setBodyCheckIn = useCallback((date, regions) => {
+    dispatch({ type: 'SET_BODY_CHECK_IN', payload: { date, regions } })
+  }, [])
   const setPersonalDetails = useCallback((payload) => {
     dispatch({ type: 'SET_PERSONAL_DETAILS', payload })
   }, [])
@@ -480,12 +531,15 @@ export function HealthProvider({ children }) {
     setNutritionTargets,
     addNutritionFavourite,
     removeNutritionFavourite,
+    addMealCombo,
+    removeMealCombo,
     setAiApiKey,
     setAiProvider,
     setAiInsights,
     setExerciseSuggestion,
     setExerciseLibrary,
     setLastWorkoutResult,
+    setBodyCheckIn,
     setPersonalDetails,
     createProfile,
     loadProfile,

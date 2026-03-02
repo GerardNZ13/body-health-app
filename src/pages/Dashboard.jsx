@@ -73,8 +73,12 @@ export default function Dashboard() {
     if (!last) return 'Push'
     const order = ['Push', 'Pull', 'Legs', 'Mobility', 'Cardio']
     const idx = order.indexOf(last.type)
-    return order[(idx + 1) % 3]
+    return order[(idx + 1) % order.length]
   })()
+  const workoutLogsOnly = exerciseLogs.filter((l) => l.workoutType && l.workoutType !== 'Rest')
+  const lastWorkoutEntry = workoutLogsOnly.slice(-1)[0]
+  const lastWorkoutType = lastWorkoutEntry?.workoutType ?? null
+  const workoutLoggedToday = !!exerciseLogs.find((l) => l.date === todayKey && l.workoutType && l.workoutType !== 'Rest')
 
   const todayEntries = nutritionLogs?.find((l) => l.date === todayKey)?.entries ?? []
   const gentleNudges = getGentleNudges(todayEntries)
@@ -189,27 +193,29 @@ export default function Dashboard() {
           </Link>
         </section>
 
-        <section className="card dashboard-card">
-          <h3>Today&apos;s steps</h3>
+        <section className="card dashboard-card movement-card">
+          <h3>Steps &amp; workout</h3>
           <p className="big-value">
             <strong>{todaySteps.toLocaleString()}</strong>
-            <span className="muted"> / {stepsGoal.toLocaleString()} goal</span>
+            <span className="muted"> / {stepsGoal.toLocaleString()} steps</span>
           </p>
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${stepsPct}%` }} />
           </div>
-          <Link to="/exercise" className="btn btn-ghost btn-sm">
-            Exercise goals
-          </Link>
-        </section>
-
-        <section className="card dashboard-card">
-          <h3>Next workout (PPL)</h3>
-          <p className="big-value">
+          <div className="movement-next">
+            <span className="muted small">Next up: </span>
             <strong className="pill pill-next">{nextPpl}</strong>
-          </p>
+            {lastWorkoutType && (
+              <span className="muted small"> · Last: {lastWorkoutType}</span>
+            )}
+          </div>
+          {workoutLoggedToday && (
+            <p className="movement-done muted small">
+              Workout logged today
+            </p>
+          )}
           <Link to="/exercise" className="btn btn-ghost btn-sm">
-            Log workout
+            Log steps &amp; workout
           </Link>
         </section>
 

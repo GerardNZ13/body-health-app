@@ -3,6 +3,78 @@
   font-size: 0.9rem;
 }
 
+/* Steps + rings in one row (suggestion card) — centered */
+.steps-rings-hint {
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+.steps-and-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  justify-content: center;
+}
+.steps-ring-box {
+  flex: 1;
+  min-width: 120px;
+  max-width: 160px;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.steps-ring-box .suggestion-steps-label,
+.steps-ring-box .ring-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
+}
+.steps-ring-box .suggestion-steps-value,
+.steps-ring-box .ring-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.steps-ring-box .suggestion-steps-bar,
+.steps-ring-box .ring-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+.steps-ring-box .suggestion-steps-fill,
+.steps-ring-box .ring-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.steps-ring-box .suggestion-steps-fill { background: var(--accent); }
+.ring-fill-activity { background: var(--red, #f85149); }
+.ring-fill-workout { background: var(--green, #3fb950); }
+.ring-fill-movement { background: var(--accent); }
+.steps-ring-box .suggestion-steps-form,
+.steps-ring-box .ring-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.steps-ring-box .suggestion-steps-form input[type="number"],
+.steps-ring-box .ring-form input[type="number"] {
+  width: 4rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
 .schedule-card .schedule-list {
   list-style: none;
   padding: 0;
@@ -11,6 +83,11 @@
 .schedule-card .schedule-list li {
   padding: 0.35rem 0;
   font-size: 0.95rem;
+}
+
+.body-check-in-heading {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
 }
 
 .suggestion-card .suggestion-controls {
@@ -48,6 +125,94 @@
   gap: 0.75rem;
 }
 .update-library-row .muted { flex: 1; min-width: 200px; }
+
+/* In-place swap (like Add food → Pick from favourites); no 3D so both panels align at top */
+.suggestion-card-flip {
+  position: relative;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.work-level-banner {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.work-level-banner.work-level-rest {
+  border-color: rgba(63, 185, 80, 0.4);
+  background: rgba(63, 185, 80, 0.08);
+}
+.work-level-banner.work-level-high {
+  border-color: rgba(210, 153, 34, 0.35);
+  background: rgba(210, 153, 34, 0.06);
+}
+.work-level-label {
+  font-weight: 600;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.work-level-rest .work-level-label { color: var(--green); }
+.work-level-high .work-level-label { color: var(--orange); }
+.work-level-desc {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.full-rest-banner {
+  border-color: rgba(100, 100, 180, 0.5);
+  background: rgba(100, 100, 180, 0.1);
+  margin-bottom: 1rem;
+}
+.full-rest-banner .work-level-label { color: var(--text); }
+.full-rest-btn {
+  margin-top: 0.5rem;
+}
+
+.suggestion-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.suggestion-meta {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+
+/* Steps box when used inside steps-and-rings uses .steps-ring-box; legacy single-box kept for structure */
+.suggestion-steps-box { }
+
+.suggestion-card .add-food-pivot {
+  margin-top: 0.25rem;
+}
+
+.suggestion-card .pivot-trigger {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.suggestion-card .btn-back {
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.suggestion-card .log-panel .quick-log-box {
+  margin-bottom: 1.25rem;
+}
+
+.suggestion-card .log-panel .workout-log-form {
+  margin-bottom: 1rem;
+}
 
 .workout-log-form {
   display: flex;
@@ -97,21 +262,29 @@
   flex: 1;
 }
 
-.equipment-checkboxes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.5rem 1rem;
+/* Workout history — flip-out subsection */
+.workout-history-section {
+  margin-top: 1rem;
+}
+.workout-history-toggle {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+.workout-history-count {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.workout-history-card {
   margin-top: 0.5rem;
 }
-.equipment-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 0.25rem 0;
+.workout-history-card h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
 }
-.equipment-option input { flex-shrink: 0; }
+.workout-history-card .recent-workouts {
+  margin: 0;
+}
 
 .quick-log-box {
   margin-bottom: 1.25rem;
@@ -148,7 +321,24 @@
   width: 4rem;
   padding: 0.25rem 0.5rem;
 }
+.quick-log-duration {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.quick-log-duration label { font-size: 0.9rem; }
+.quick-log-duration input { width: 4rem; padding: 0.25rem 0.5rem; }
 .quick-log-form .btn { margin-top: 0.5rem; }
+
+.steps-log-card .steps-log-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+.steps-log-card .steps-log-form .input-group { margin-bottom: 0; }
 
 .steps-status {
   margin-top: 0.75rem;

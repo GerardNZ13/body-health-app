@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Body Health</string>
+    <string name="title_activity_main">Body Health</string>
+    <string name="package_name">com.bodyhealthapp.app</string>
+    <string name="custom_url_scheme">com.bodyhealthapp.app</string>
+</resources>

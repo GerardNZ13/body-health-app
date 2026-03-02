@@ -95,28 +95,31 @@ export async function fetchAiInsights(provider, apiKey, { weight = [], measureme
   throw new Error(`Unknown provider: ${provider}`)
 }
 
-/** Build user prompt for workout suggestion (Exercise page). Uses weight + workout type + recent tier history. */
-function buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs = [], stepsToday) {
+/** Build user prompt for workout suggestion (Exercise page). Uses weight + workout type + recent tier history + work level. */
+function buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs = [], stepsToday, workLevel = null) {
   const recentWithTier = exerciseLogs
     .filter((l) => l.workoutType)
     .slice(-10)
     .map((l) => `${l.date} ${l.workoutType}${l.tier ? ` (${l.tier})` : ''}`)
     .join('\n')
+  const workLevelLine = workLevel
+    ? `\nWork level today: **${workLevel.label}** — ${workLevel.description}${workLevel.recommendation === 'rest' ? ' If they still want something, suggest only very light mobility or a short stretch; otherwise recommend rest.' : workLevel.level === 'high' ? ' Suggest a lighter, shorter range than usual (e.g. fewer exercises, lower tier emphasis).' : ''}\n`
+    : ''
   return `The user is asking for TODAY'S WORKOUT SUGGESTION.
 
 Workout type for this session: **${workoutType}**
 Current weight: **${currentWeightKg != null ? currentWeightKg + ' kg' : 'unknown (log weight on Weight & Body page)'}**
 Today's steps so far: ${stepsToday != null ? stepsToday : 'not logged'}
-
+${workLevelLine}
 Recent sessions (type and tier they did):
 ${recentWithTier || 'No recent workout logs with tier yet.'}
 
 Respond with a concrete workout in Bronze / Gold / Platinum+ format. For each tier, list specific exercises appropriate for their current weight (e.g. wall push-up vs knee vs full push-up for Push day). Use their equipment: 4 kg and 6 kg kettlebells. If they have been doing mostly Gold lately, include a clear progression so Platinum becomes the next target. End with one List D (mobility) cool-down and a Leg Health reminder if steps are high or they reported fatigue. Plain text only, no markdown.`
 }
 
-export async function fetchExerciseSuggestion(provider, apiKey, { workoutType, weight = [], exerciseLogs = [], stepsToday }) {
+export async function fetchExerciseSuggestion(provider, apiKey, { workoutType, weight = [], exerciseLogs = [], stepsToday, workLevel = null }) {
   const currentWeightKg = weight.length ? weight[weight.length - 1].value : null
-  const userPrompt = buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs, stepsToday)
+  const userPrompt = buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs, stepsToday, workLevel)
   if (provider === 'openai') {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

@@ -170,6 +170,77 @@ function relevanceScore(result, rawQuery, queryTerms) {
   return score
 }
 
+/**
+ * Parse Open Food Facts quantity (e.g. "250g", "250 g", "1 can (250g)") to total grams per pack/item.
+ * @returns { number | null } grams per item/pack, or null if unparseable
+ */
+function parseQuantityToGrams(quantity) {
+  if (!quantity || typeof quantity !== 'string') return null
+  const s = String(quantity).trim()
+  const match = s.match(/(\d+(?:[.,]\d+)?)\s*g(?:ram)?s?/i) || s.match(/(\d+(?:[.,]\d+)?)\s*g\b/i)
+  if (match) {
+    const g = parseFloat(match[1].replace(',', '.'))
+    return g > 0 && g < 100000 ? Math.round(g * 10) / 10 : null
+  }
+  const numOnly = s.match(/^(\d+(?:[.,]\d+)?)\s*$/)
+  if (numOnly) {
+    const g = parseFloat(numOnly[1].replace(',', '.'))
+    return g > 0 && g < 100000 ? Math.round(g * 10) / 10 : null
+  }
+  return null
+}
+
+/**
+ * Parse Open Food Facts serving_size (e.g. "25 g", "1 bar (25g)", "40g") to grams.
+ * @returns { number | null } grams per serving, or null if unparseable
+ */
+function parseServingSizeGrams(servingSize) {
+  if (!servingSize || typeof servingSize !== 'string') return null
+  const s = servingSize.trim()
+  // Match number optionally followed by "g" or "gram(s)", or number in parens like "(25g)"
+  const match = s.match(/(\d+(?:[.,]\d+)?)\s*g(?:ram)?s?/i) || s.match(/(\d+(?:[.,]\d+)?)\s*g\b/i)
+  if (match) {
+    const g = parseFloat(match[1].replace(',', '.'))
+    return g > 0 && g < 10000 ? Math.round(g * 10) / 10 : null
+  }
+  const numOnly = s.match(/^(\d+(?:[.,]\d+)?)\s*$/)
+  if (numOnly) {
+    const g = parseFloat(numOnly[1].replace(',', '.'))
+    return g > 0 && g < 10000 ? Math.round(g * 10) / 10 : null
+  }
+  return null
+}
+
+/**
+ * Extract per-serving nutriments from OFF product when available.
+ * OFF uses energy-kcal_serving, energy-kj_serving, proteins_serving, carbohydrates_serving, fat_serving, etc.
+ * @returns { { calories, protein, carbs, fat, sodium?, sugars?, saturatedFat?, fiber? } | null } per 1 serving, or null if not available
+ */
+function parseNutrimentsPerServing(product) {
+  const n = product.nutriments || {}
+  let calories = n['energy-kcal_serving'] ?? n.energy_kcal_serving
+  if (calories == null && (n['energy-kj_serving'] ?? n.energy_serving) != null) {
+    const kj = n['energy-kj_serving'] ?? n.energy_serving ?? 0
+    calories = kj / 4.184
+  }
+  if (calories == null || calories < 0) return null
+  const protein = (n.proteins_serving ?? n.protein_serving) != null ? Number(n.proteins_serving ?? n.protein_serving) : 0
+  const carbs = n.carbohydrates_serving != null ? Number(n.carbohydrates_serving) : 0
+  const fat = n.fat_serving != null ? Number(n.fat_serving) : 0
+  const sodiumServing = n.sodium_serving
+  const sodiumMg = sodiumServing != null ? Math.round(Number(sodiumServing) * (Math.abs(Number(sodiumServing)) < 10 ? 1000 : 1)) : null
+  return {
+    calories: Math.round(calories),
+    protein: protein != null ? Math.round(protein * 10) / 10 : 0,
+    carbs: carbs != null ? Math.round(carbs * 10) / 10 : 0,
+    fat: fat != null ? Math.round(fat * 10) / 10 : 0,
+    ...(sodiumMg != null && sodiumMg >= 0 ? { sodium: sodiumMg } : {}),
+    ...(n.sugars_serving != null ? { sugars: Math.round(Number(n.sugars_serving) * 10) / 10 } : {}),
+    ...(n['saturated-fat_serving'] != null || n.saturated_fat_serving != null ? { saturatedFat: Math.round((Number(n['saturated-fat_serving'] ?? n.saturated_fat_serving ?? 0)) * 10) / 10 } : {}),
+    ...(n.fiber_serving != null ? { fiber: Math.round(Number(n.fiber_serving) * 10) / 10 } : {}),
+  }
+}
+
 function parseNutriments(product, quantityGrams = 100) {
   const scale = quantityGrams / 100
   const n = product.nutriments || {}
@@ -197,6 +268,14 @@ function parseNutriments(product, quantityGrams = 100) {
 }
 
 function productToResult(p) {
+  const servingSizeGrams = parseServingSizeGrams(p.serving_size)
+  const itemSizeGrams = parseQuantityToGrams(p.quantity)
+  let servingsPerPack = null
+  if (servingSizeGrams != null && servingSizeGrams > 0 && itemSizeGrams != null && itemSizeGrams >= servingSizeGrams) {
+    const ratio = itemSizeGrams / servingSizeGrams
+    if (ratio >= 1 && ratio <= 100) servingsPerPack = Math.round(ratio)
+  }
+  const nutrimentPerServing = (p.serving_size && parseNutrimentsPerServing(p)) || null
   return {
     id: p.code || p._id,
     name: p.product_name,
@@ -204,20 +283,26 @@ function productToResult(p) {
     quantity: 100,
     ...parseNutriments(p, 100),
     barcode: p.code,
+    ...(servingSizeGrams != null ? { servingSizeGrams, servingLabel: (p.serving_size || '').trim() || null } : {}),
+    ...(itemSizeGrams != null ? { itemSizeGrams } : {}),
+    ...(servingsPerPack != null ? { servingsPerPack } : {}),
+    ...(nutrimentPerServing ? { nutrimentPerServing } : {}),
   }
 }
 
 /**
  * Run one search (world or with optional country filter).
  * Uses proxy in dev: fetch('/api/off/cgi/search.pl?...') -> world.openfoodfacts.org
+ * @param {number} page - 1-based page number for pagination (Open Food Facts supports page=1,2,...)
  */
-async function searchOnce(query, pageSize, countryTag = null) {
+async function searchOnce(query, pageSize, countryTag = null, page = 1) {
   const base = OFF_ORIGIN || ''
   const path = base ? `${base}${SEARCH_PATH}` : `/api/off${SEARCH_PATH}`
   const params = new URLSearchParams({
     search_terms: query.trim(),
     json: 1,
     page_size: String(Math.min(Number(pageSize) || 24, 24)),
+    page: String(Math.max(1, page)),
   })
   if (countryTag) {
     params.set('tagtype_0', 'countries')
@@ -236,7 +321,7 @@ async function searchOnce(query, pageSize, countryTag = null) {
   })
 }
 
-const DEFAULT_SEARCH_LIMIT = 10
+const DEFAULT_SEARCH_LIMIT = 20
 const SEARCH_POOL_SIZE = 24
 
 /**
@@ -244,15 +329,20 @@ const SEARCH_POOL_SIZE = 24
  * Returns the top N results ranked MyFitnessPal-style:
  * - Meal-style query (e.g. "bbq chicken katsu panini") → best phrase/term-order match first.
  * - Single item (e.g. "banana") → singular option first (e.g. Banana), then banana smoothie, etc.
+ * @param {string} query - Search query
+ * @param {number} limit - Max results to return
+ * @param {number} page - 1-based page (page 1 = first page; page 2+ appends from API, no canonical/relevance merge)
+ * @returns {{ results: Array, hasMore: boolean }} - results and whether more pages likely exist
  */
-export async function searchFood(query, limit = DEFAULT_SEARCH_LIMIT) {
+export async function searchFood(query, limit = DEFAULT_SEARCH_LIMIT, page = 1) {
   const raw = query?.trim()
-  if (!raw) return []
+  if (!raw) return { results: [], hasMore: false }
   const normalized = normalizeQuery(raw)
   const searchTerms = normalized.split(/\s+/).filter(Boolean)
   const variants = getQueryVariants(normalized)
   const seen = new Set()
   let merged = []
+  const isPage2Plus = page > 1
 
   function addResults(results) {
     for (const r of results) {
@@ -268,34 +358,33 @@ export async function searchFood(query, limit = DEFAULT_SEARCH_LIMIT) {
 
   try {
     const [auResults, nzResults] = await Promise.all([
-      searchOnce(queryToTry, SEARCH_POOL_SIZE, 'en:Australia'),
-      searchOnce(queryToTry, SEARCH_POOL_SIZE, 'en:new-zealand'),
+      searchOnce(queryToTry, SEARCH_POOL_SIZE, 'en:Australia', page),
+      searchOnce(queryToTry, SEARCH_POOL_SIZE, 'en:new-zealand', page),
     ])
     addResults(auResults)
     addResults(nzResults)
     if (merged.length < limit * 2) {
-      const world = await searchOnce(queryToTry, SEARCH_POOL_SIZE, null)
+      const world = await searchOnce(queryToTry, SEARCH_POOL_SIZE, null, page)
       addResults(world)
     }
-    // For single-word queries (e.g. "banana"), also search "{term} raw" to get whole-food entries
-    if (isSingleWord && searchTerms[0].length >= 2) {
+    if (!isPage2Plus && isSingleWord && searchTerms[0].length >= 2) {
       const rawQuery = `${searchTerms[0]} raw`
       try {
-        const rawWorld = await searchOnce(rawQuery, 12, null)
+        const rawWorld = await searchOnce(rawQuery, 12, null, page)
         addResults(rawWorld)
       } catch (_) {
         /* ignore */
       }
     }
   } catch (_) {
-    const world = await searchOnce(queryToTry, SEARCH_POOL_SIZE, null)
+    const world = await searchOnce(queryToTry, SEARCH_POOL_SIZE, null, page)
     addResults(world)
   }
 
-  if (merged.length === 0 && variants.length > 1) {
+  if (!isPage2Plus && merged.length === 0 && variants.length > 1) {
     for (let i = 1; i < variants.length; i++) {
       try {
-        const fallback = await searchOnce(variants[i], SEARCH_POOL_SIZE, null)
+        const fallback = await searchOnce(variants[i], SEARCH_POOL_SIZE, null, page)
         addResults(fallback)
         if (merged.length >= limit * 2) break
       } catch (_) {
@@ -308,13 +397,17 @@ export async function searchFood(query, limit = DEFAULT_SEARCH_LIMIT) {
     merged.sort((a, b) => relevanceScore(b, raw, searchTerms) - relevanceScore(a, raw, searchTerms))
   }
 
-  const canonical = getCanonicalMatch(normalized)
-  if (canonical) {
-    const canonNorm = norm(canonical.name)
-    const rest = merged.filter((r) => norm(r.name) !== canonNorm && r.id !== canonical.id).slice(0, limit - 1)
-    return [canonical, ...rest]
+  let final = merged.slice(0, limit)
+  if (!isPage2Plus) {
+    const canonical = getCanonicalMatch(normalized)
+    if (canonical) {
+      const canonNorm = norm(canonical.name)
+      const rest = merged.filter((r) => norm(r.name) !== canonNorm && r.id !== canonical.id).slice(0, limit - 1)
+      final = [canonical, ...rest]
+    }
   }
-  return merged.slice(0, limit)
+  const hasMore = merged.length > limit
+  return { results: final, hasMore }
 }
 
 export async function getProductByBarcode(barcode) {
@@ -326,6 +419,14 @@ export async function getProductByBarcode(barcode) {
   const data = await res.json().catch(() => ({}))
   const product = data.product
   if (!product?.product_name) return null
+  const servingSizeGrams = parseServingSizeGrams(product.serving_size)
+  const itemSizeGrams = parseQuantityToGrams(product.quantity)
+  let servingsPerPack = null
+  if (servingSizeGrams != null && servingSizeGrams > 0 && itemSizeGrams != null && itemSizeGrams >= servingSizeGrams) {
+    const ratio = itemSizeGrams / servingSizeGrams
+    if (ratio >= 1 && ratio <= 100) servingsPerPack = Math.round(ratio)
+  }
+  const nutrimentPerServing = (product.serving_size && parseNutrimentsPerServing(product)) || null
   return {
     id: product.code,
     name: product.product_name,
@@ -333,5 +434,9 @@ export async function getProductByBarcode(barcode) {
     quantity: 100,
     ...parseNutriments(product, 100),
     barcode: product.code,
+    ...(servingSizeGrams != null ? { servingSizeGrams, servingLabel: (product.serving_size || '').trim() || null } : {}),
+    ...(itemSizeGrams != null ? { itemSizeGrams } : {}),
+    ...(servingsPerPack != null ? { servingsPerPack } : {}),
+    ...(nutrimentPerServing ? { nutrimentPerServing } : {}),
   }
 }

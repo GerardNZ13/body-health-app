@@ -166,6 +166,37 @@
   max-width: 320px;
 }
 
+/* MyFitnessPal-style: recent & frequently logged */
+.recent-frequent-section {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.recent-frequent-block {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.recent-frequent-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.recent-frequent-list .food-row {
+  padding: 0.4rem 0;
+}
+
+.load-more-row {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
 .search-results {
   margin-top: 1rem;
   border-top: 1px solid var(--border);
@@ -200,15 +231,27 @@
   text-decoration: none;
 }
 
+.quantity-row,
 .quantity-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.quantity-row .qty-unit-select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  min-width: 6rem;
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
 }
 
-.quantity-label .qty-input {
+.quantity-label .qty-input,
+.quantity-row .qty-input {
   width: 80px;
 }
 
@@ -236,6 +279,11 @@
   color: var(--text-muted);
 }
 
+.food-info .muted {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .food-actions {
   display: flex;
   align-items: center;
@@ -255,6 +303,221 @@
 
 .add-food-section .add-food-pivot {
   margin-top: 0.25rem;
+}
+
+/* Quick guesstimate panel */
+.guesstimate-panel .guesstimate-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
+  color: var(--text-muted);
+}
+
+.guesstimate-intro {
+  margin-bottom: 1rem;
+}
+
+.guesstimate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guesstimate-row label,
+.guesstimate-balance-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.guesstimate-row input[type="text"],
+.guesstimate-row input[type="number"] {
+  width: 100%;
+  max-width: 280px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.guesstimate-suggest-btn {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.guesstimate-row-inline {
+  max-width: 140px;
+}
+
+.guesstimate-balance-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.guesstimate-balance-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.guesstimate-balance-option input {
+  margin: 0;
+}
+
+/* Today's log: guesstimate entries */
+.today-entry-guesstimate {
+  list-style: none;
+  padding-left: 0;
+}
+
+.guesstimate-badge {
+  display: inline-block;
+  margin-right: 0.25rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.balance-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: var(--border);
+}
+
+.balance-badge.balance-protein {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--green);
+}
+
+.balance-badge.balance-mixed {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--orange);
+}
+
+.balance-badge.balance-treats {
+  background: rgba(248, 81, 73, 0.12);
+  color: var(--red);
+}
+
+/* Meal combos panel */
+.combos-panel .combos-title,
+.combos-panel .combos-list-title,
+.combos-panel .create-combo-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+}
+
+.combos-intro {
+  margin-bottom: 1rem;
+}
+
+.combos-list {
+  margin-bottom: 1.25rem;
+}
+
+.combo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.combo-row:last-of-type {
+  border-bottom: none;
+}
+
+.combo-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.combo-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.create-combo-section {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.create-combo-name-row label,
+.create-combo-qty-row label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.create-combo-name-row input {
+  width: 100%;
+  max-width: 280px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.create-combo-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.create-combo-favourites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.combo-fav-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.combo-fav-name {
+  font-size: 0.875rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo-items-preview {
+  margin-top: 1rem;
+}
+
+.combo-items-preview ul {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.combo-items-preview li {
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-remove-item {
+  padding: 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .search-panel .search-intro {

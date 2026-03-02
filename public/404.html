@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting…</title>
+  <script>
+    // GitHub Pages: serve this for any 404 so the SPA can handle routing.
+    // Redirect to base path with hash so the app loads and React Router can show the route.
+    (function () {
+      var segs = location.pathname.split('/').filter(Boolean);
+      var base = segs.length ? '/' + segs[0] + '/' : '/';
+      var path = segs.length > 1 ? '/' + segs.slice(1).join('/') : '/';
+      location.replace(base + '#' + path);
+    })();
+  </script>
+</head>
+<body>Redirecting…</body>
+</html>

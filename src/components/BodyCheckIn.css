@@ -1,0 +1,121 @@
+.body-check-in {
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 0.75rem;
+}
+
+.body-check-in-intro {
+  margin: 0 0 0.5rem 0;
+}
+
+.body-check-in-view-toggle {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.body-check-in-view-toggle .btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.body-check-in-map-wrap {
+  max-width: 180px;
+  margin: 0 auto 0.75rem;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+}
+
+.body-check-in-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.body-check-in-outline {
+  pointer-events: none;
+}
+
+.body-check-in-zone {
+  fill: rgba(0, 0, 0, 0.08);
+  stroke: rgba(0, 0, 0, 0.15);
+  stroke-width: 0.4;
+  cursor: pointer;
+  transition: fill 0.15s ease, stroke 0.15s ease, transform 0.1s ease;
+}
+
+.body-check-in-zone:hover {
+  fill: rgba(0, 0, 0, 0.12);
+  stroke: var(--accent);
+}
+
+.body-check-in-zone.has-value {
+  fill: rgba(248, 81, 73, 0.35);
+  stroke: rgba(248, 81, 73, 0.6);
+}
+
+.body-check-in-zone.has-value:hover {
+  fill: rgba(248, 81, 73, 0.5);
+}
+
+.body-check-in-zone.active {
+  fill: rgba(248, 81, 73, 0.45);
+  stroke: var(--red, #f85149);
+  stroke-width: 1;
+}
+
+.body-check-in-rating {
+  padding: 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+
+.body-check-in-rating-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.body-check-in-rating-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.body-check-in-rating-buttons .btn {
+  min-width: 2rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.body-check-in-rating-buttons .btn.active {
+  background: var(--red, #f85149);
+  color: #fff;
+  border-color: var(--red, #f85149);
+}
+
+.body-check-in-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.body-check-in-tag {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: rgba(248, 81, 73, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+
+.body-check-in-clear {
+  margin-left: 0.25rem;
+}

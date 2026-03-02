@@ -1,18 +1,101 @@
-.personal-page .personal-form {
+.personal-page .card + .card {
+  margin-top: 1.25rem;
+}
+.personal-page .card > h3 {
+  margin: 0 0 0.35rem 0;
+}
+.personal-page .card > .muted.small {
+  margin-top: 0.25rem;
+}
+
+/* Your details card — structured form */
+.personal-details-card .card-desc {
+  margin: -0.25rem 0 1rem 0;
+}
+
+.personal-form {
   margin-bottom: 0;
 }
 
-.personal-form .input-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.form-section {
+  margin-bottom: 1.5rem;
+}
+.form-section:last-of-type {
+  margin-bottom: 0;
 }
 
-.personal-form .input-row .input-group {
-  flex: 1;
-  min-width: 140px;
+.form-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section-hint {
+  margin: 0 0 0.5rem 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem 1rem;
+}
+.form-grid-1 {
+  grid-template-columns: 1fr;
+}
+.form-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.form-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 600px) {
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.personal-form .input-group {
   margin-bottom: 0;
+}
+.personal-form .input-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+.personal-form .input-group input,
+.personal-form .input-group select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+.personal-form .input-group input:focus,
+.personal-form .input-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.personal-form .input-group .input-hint {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.8rem;
+}
+
+.form-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.form-actions .btn {
+  min-width: 10rem;
 }
 
 .personal-stats {
@@ -43,6 +126,12 @@
   padding: 0.35rem 0;
 }
 
+.profile-section h3 {
+  margin: 0 0 0.25rem 0;
+}
+.profile-section > .muted {
+  margin-bottom: 0.75rem;
+}
 .profile-section .profile-code-row {
   display: flex;
   align-items: center;
@@ -80,4 +169,93 @@
 .profile-section .profile-leave {
   margin-top: 0.75rem;
   color: var(--text-muted);
+}
+
+.personal-page .steps-connect-card h3 {
+  margin: 0 0 0.35rem 0;
+}
+.personal-page .steps-connect-card .muted.small {
+  margin: 0.35rem 0 0 0;
+}
+.personal-page .steps-connect-card code {
+  font-size: 0.85em;
+  background: var(--bg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.steps-connect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.steps-auto-sync {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Equipment I have — subsection (collapsible) */
+.personal-page .equipment-card h3 {
+  margin: 0 0 0.35rem 0;
+}
+.personal-page .equipment-card .equipment-hint {
+  margin-bottom: 0.5rem;
+}
+.equipment-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0;
+  margin: 0 0 0.25rem 0;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+.equipment-toggle:hover {
+  color: var(--accent);
+}
+.equipment-toggle-icon {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.equipment-hint {
+  margin-top: 0;
+}
+.equipment-checkboxes-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease-out;
+}
+.equipment-checkboxes-panel.is-open {
+  max-height: 320px;
+}
+.equipment-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  padding-top: 0.25rem;
+}
+.equipment-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+}
+.equipment-option input {
+  flex-shrink: 0;
 }

@@ -30,6 +30,13 @@ export function getDateKeyOffset(dateKey, daysBack) {
   return d.toISOString().slice(0, 10)
 }
 
+/** YYYY-MM-DD for N days after a given date key (e.g. "2025-02-15", 90 => "2025-05-16"). */
+export function addDaysToDateKey(dateKey, days) {
+  const d = new Date(dateKey + 'T12:00:00')
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 /** Short display: "Mon 16 Feb" in the given timezone. */
 export function formatDate(key, tz = DEFAULT_TZ) {
   return new Date(key + 'T12:00:00').toLocaleDateString('en-GB', {

@@ -79,6 +79,160 @@
   margin-top: 0.5rem;
 }
 
+/* Flip: table ↔ trend graph inside Log 1 / Log 2 expanded sections */
+.campaign-flip {
+  position: relative;
+}
+
+.campaign-flip-inner {
+  position: relative;
+}
+
+.campaign-flip-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.campaign-flip-header h3 {
+  margin: 0;
+}
+
+.campaign-flip .pivot-trigger {
+  margin: 0;
+  padding: 0;
+}
+
+.campaign-flip .btn-back {
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.campaign-flip .campaign-graph-panel h3 {
+  margin: 0 0 0.5rem 0;
+}
+
+.campaign-flip .btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.campaign-flip .btn-link:hover {
+  text-decoration: none;
+}
+
+/* Trend chart (SVG) with axes — fills card width, scales when container shrinks */
+.trend-chart-wrap {
+  margin-top: 0.5rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.trend-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* 500x220 viewBox → aspect ratio so chart scales with width */
+  aspect-ratio: 500 / 220;
+  max-height: 280px;
+}
+
+.trend-chart-axis {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.trend-chart-grid {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+}
+
+.trend-chart-tick {
+  font-size: 0.65rem;
+  fill: var(--text-muted);
+}
+
+.trend-chart-axis-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0 0;
+}
+
+.trend-chart-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.trend-chart-bmi-legend {
+  margin-top: 0.35rem;
+}
+
+.trend-chart-bmi-legend li {
+  padding-left: 0.5rem;
+  border-left: 3px solid;
+  margin-right: 0.75rem;
+}
+
+.trend-chart-bmi-caveat {
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+  font-size: 0.8rem;
+}
+
+.trend-chart-tooltip-box {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.trend-chart-tooltip-text {
+  font-size: 0.75rem;
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.trend-chart-trend-caption {
+  margin: 0.5rem 0 0 0;
+}
+
+.trend-chart-projection-label {
+  font-size: 0.65rem;
+  fill: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Trend line: very thick so it’s easy to see */
+.trend-chart-trend-line {
+  stroke: var(--text);
+  stroke-width: 10;
+  stroke-dasharray: 12 8;
+}
+
+.trend-chart-ref-label {
+  font-size: 0.6rem;
+  fill: var(--text-muted);
+}
+
+.trend-chart-ref-note {
+  margin-top: 0.5rem;
+}
+
 .expand-block {
   margin-top: 0.75rem;
 }

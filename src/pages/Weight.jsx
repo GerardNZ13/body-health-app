@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useHealth } from '../store/HealthContext'
 import { useDateUtils } from '../hooks/useDateUtils'
-import { getDateKeyOffset, formatLongMonth } from '../utils/date'
-import { bmi, bmiCategory, rateInterpretation } from '../utils/personalStats'
+import { getDateKeyOffset, addDaysToDateKey, formatLongMonth } from '../utils/date'
+import { bmi, bmiCategory, rateInterpretation, weightAtBmi, BMI_BANDS } from '../utils/personalStats'
 import { fetchAiInsights } from '../services/ai'
 import PageFooter from '../components/PageFooter'
 import './Weight.css'
@@ -126,6 +126,334 @@ function getWeightTrendInWindow(weightRows, startDateKey, endDateKey) {
   }
 }
 
+/** Pick ~n nice tick values between min and max (for axis labels). */
+function niceTicks(min, max, n = 5) {
+  if (min === max) return [min]
+  const range = max - min
+  const step = range / (n - 1)
+  const ticks = []
+  for (let i = 0; i < n; i++) ticks.push(min + step * i)
+  return ticks
+}
+
+/** ViewBox size for trend charts — fixed so SVG scales to fill container. */
+const CHART_VIEWBOX = { width: 500, height: 220 }
+
+/** Simple SVG line chart: weight (kg) over time with axes. Extends 3 months ahead with trend line. Optional BMI overlay. Hover for date + weight. */
+function WeightTrendChart({ rows, formatShortDate, heightCm }) {
+  const [hovered, setHovered] = useState(null)
+  const sorted = [...(rows || [])].sort((a, b) => new Date(a.date) - new Date(b.date))
+  if (sorted.length < 2) {
+    return <p className="muted small">Add at least two weight entries to see the trend graph.</p>
+  }
+  const { width, height } = CHART_VIEWBOX
+  const padding = { top: 16, right: 16, bottom: 40, left: 48 }
+  const innerW = width - padding.left - padding.right
+  const innerH = height - padding.top - padding.bottom
+  const firstDate = sorted[0].date
+  const lastDate = sorted[sorted.length - 1].date
+  const lastValue = sorted[sorted.length - 1].value
+  const firstValue = sorted[0].value
+  const minX = new Date(firstDate).getTime()
+  // Extend x-axis 3 months (≈90 days) beyond last data point
+  const futureDateKey = addDaysToDateKey(lastDate, 90)
+  const maxXExtended = new Date(futureDateKey).getTime()
+  const maxX = maxXExtended
+
+  // Trend: use last 14-day or 7-day rate to extrapolate to +3 mo (prefer 14-day if enough points)
+  const last14Start = getDateKeyOffset(lastDate, 14)
+  const last7Start = getDateKeyOffset(lastDate, 7)
+  const in14 = sorted.filter((r) => r.date >= last14Start && r.date <= lastDate)
+  const in7 = sorted.filter((r) => r.date >= last7Start && r.date <= lastDate)
+  let rateKgPerWeek = 0
+  let trendSource = 'all'
+  if (in14.length >= 2) {
+    const first = in14[0]
+    const last = in14[in14.length - 1]
+    const days = (new Date(last.date) - new Date(first.date)) / (24 * 60 * 60 * 1000)
+    if (days > 0) {
+      rateKgPerWeek = (last.value - first.value) / (days / 7)
+      trendSource = '14d'
+    }
+  }
+  if (trendSource !== '14d' && in7.length >= 2) {
+    const first = in7[0]
+    const last = in7[in7.length - 1]
+    const days = (new Date(last.date) - new Date(first.date)) / (24 * 60 * 60 * 1000)
+    if (days > 0) {
+      rateKgPerWeek = (last.value - first.value) / (days / 7)
+      trendSource = '7d'
+    }
+  }
+  if (trendSource !== '14d' && trendSource !== '7d') {
+    const daysBetween = (new Date(lastDate) - new Date(firstDate)) / (24 * 60 * 60 * 1000)
+    rateKgPerWeek = daysBetween > 0 ? (lastValue - firstValue) / (daysBetween / 7) : 0
+  }
+  const projectedWeight = lastValue + rateKgPerWeek * (90 / 7)
+
+  let minY = Math.min(...sorted.map((r) => r.value))
+  let maxY = Math.max(...sorted.map((r) => r.value))
+  minY = Math.min(minY, projectedWeight)
+  maxY = Math.max(maxY, projectedWeight)
+
+  // If we have height, add BMI band boundaries to y range so bands are visible
+  const bmiBoundaryWeights = heightCm != null && heightCm > 0
+    ? [18.5, 25, 30, 35, 40].map((b) => weightAtBmi(b, heightCm)).filter((w) => w != null)
+    : []
+  if (bmiBoundaryWeights.length > 0) {
+    const pad = 3
+    minY = Math.min(minY, ...bmiBoundaryWeights) - pad
+    maxY = Math.max(maxY, ...bmiBoundaryWeights) + pad
+  }
+  const rangeY = maxY - minY || 1
+  const x = (d) => padding.left + (innerW * (new Date(d.date).getTime() - minX)) / (maxX - minX || 1)
+  const y = (v) => padding.top + innerH - (innerH * (v - minY)) / rangeY
+  const pathD = sorted.map((r, i) => `${i === 0 ? 'M' : 'L'} ${x(r)} ${y(r.value)}`).join(' ')
+  // Trend line: last data point → +3 mo (extrapolated from 7d/14d or full range)
+  const xLast = x({ date: lastDate })
+  const xFuture = x({ date: futureDateKey })
+  const trendLineD = `M ${xLast} ${y(lastValue)} L ${xFuture} ${y(projectedWeight)}`
+
+  const yTicks = niceTicks(minY, maxY, 5)
+  const formatDate = formatShortDate || ((key) => key.slice(5))
+  // X ticks: 2-weekly; only one label at the end — "+3 mo" (no last 2-week date before it)
+  const formatDDMM = (key) => `${key.slice(8, 10)}/${key.slice(5, 7)}`
+  const xTickDates = []
+  let d = firstDate
+  const futureTime = new Date(futureDateKey).getTime()
+  const twoWeeksMs = 14 * 24 * 60 * 60 * 1000
+  while (new Date(d).getTime() + twoWeeksMs < futureTime) {
+    xTickDates.push(d)
+    d = addDaysToDateKey(d, 14)
+  }
+  xTickDates.push(futureDateKey)
+
+  // BMI bands (weight ranges) for overlay — only when height is set
+  const bmiBands =
+    heightCm != null && heightCm > 0
+      ? BMI_BANDS.map((band, i) => {
+          const wLow = i === 0 ? minY : weightAtBmi(BMI_BANDS[i - 1].bmiMax, heightCm)
+          const wHigh = band.bmiMax != null ? weightAtBmi(band.bmiMax, heightCm) : maxY + 20
+          return { ...band, wLow, wHigh }
+        })
+      : []
+
+  return (
+    <div className="trend-chart-wrap">
+      <svg viewBox={`0 0 ${width} ${height}`} className="trend-chart-svg" preserveAspectRatio="xMidYMid meet">
+        {/* BMI band overlay (behind grid and line); clamp to visible y range */}
+        {bmiBands.map((band) => {
+          const wLow = Math.max(band.wLow, minY)
+          const wHigh = Math.min(band.wHigh, maxY)
+          if (wLow >= wHigh) return null
+          return (
+            <rect
+              key={band.label}
+              x={padding.left}
+              y={y(wHigh)}
+              width={innerW}
+              height={Math.max(0, y(wLow) - y(wHigh))}
+              fill={band.color}
+            />
+          )
+        })}
+        {/* Y-axis (left) */}
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + innerH} className="trend-chart-axis" />
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line x1={padding.left} y1={y(v)} x2={padding.left + innerW} y2={y(v)} className="trend-chart-grid" />
+            <text x={padding.left - 6} y={y(v)} className="trend-chart-tick" textAnchor="end" dominantBaseline="middle">{v.toFixed(1)}</text>
+          </g>
+        ))}
+        {/* X-axis (bottom) */}
+        <line x1={padding.left} y1={padding.top + innerH} x2={padding.left + innerW} y2={padding.top + innerH} className="trend-chart-axis" />
+        {xTickDates.map((dateKey) => (
+          <text key={dateKey} x={x({ date: dateKey })} y={padding.top + innerH + 20} className="trend-chart-tick" textAnchor="middle">
+            {dateKey === futureDateKey ? '+3 mo' : formatDDMM(dateKey)}
+          </text>
+        ))}
+        {/* Actual data line */}
+        <path d={pathD} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Trend line: first point → +3 mo (1.5px, pointer-events: none so hover works) */}
+        <path
+          d={trendLineD}
+          fill="none"
+          stroke="#c2410c"
+          strokeWidth={1.5}
+          strokeDasharray="6 4"
+          strokeLinecap="round"
+          pointerEvents="none"
+        />
+        <circle cx={xFuture} cy={y(projectedWeight)} r={3} fill="#c2410c" pointerEvents="none" />
+        <text x={xFuture} y={y(projectedWeight) - 12} className="trend-chart-projection-label" textAnchor="middle" fill="#c2410c">
+          ~{projectedWeight.toFixed(1)} kg
+        </text>
+        {/* Invisible hit targets + hover pin and tooltip (always above, in box) */}
+        {sorted.map((r) => {
+          const px = x(r)
+          const py = y(r.value)
+          const isHovered = hovered && hovered.date === r.date
+          const tooltipY = Math.max(padding.top - 2, py - 30)
+          const textY = tooltipY + 14
+          return (
+            <g
+              key={r.date}
+              onMouseEnter={() => setHovered({ date: r.date, value: r.value, x: px, y: py })}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: 'pointer' }}
+            >
+              <circle cx={px} cy={py} r={12} fill="transparent" />
+              {isHovered && (
+                <>
+                  <circle cx={px} cy={py} r={4} fill="var(--accent)" stroke="var(--bg)" strokeWidth="2" />
+                  <rect
+                    x={px - 48}
+                    y={tooltipY}
+                    width={96}
+                    height={24}
+                    rx={4}
+                    className="trend-chart-tooltip-box"
+                  />
+                  <text x={px} y={textY} className="trend-chart-tooltip-text" textAnchor="middle">
+                    {formatDate(r.date)}: {r.value} kg
+                  </text>
+                </>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+      <p className="trend-chart-trend-caption muted small">
+        Trend from {trendSource === '14d' ? 'last 14 days' : trendSource === '7d' ? 'last 7 days' : 'full range'}: ~{projectedWeight.toFixed(1)} kg in 3 months (projection, not a forecast).
+      </p>
+      {bmiBands.length > 0 && (
+        <>
+          <ul className="trend-chart-legend trend-chart-bmi-legend" aria-label="BMI classification bands">
+            {BMI_BANDS.map((b) => (
+              <li key={b.label} style={{ borderLeftColor: b.color.replace('0.2)', '1)').replace('0.25)', '1)') }}>
+                {b.label}
+              </li>
+            ))}
+          </ul>
+          <p className="trend-chart-bmi-caveat muted small">BMI is a population guide; athletes and very muscular builds can sit in &quot;overweight&quot; while healthy.</p>
+        </>
+      )}
+      <p className="trend-chart-axis-label trend-chart-y-label">Weight (kg)</p>
+    </div>
+  )
+}
+
+/** Simple SVG multi-line chart: measurement areas (cm) over time with axes. Optional ref lines (88/102 cm, ½ height if heightCm). */
+const MEAS_CHART_COLORS = ['var(--accent)', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1']
+
+/** Waist-related reference lines for measurement chart (cm). 88/102 = common metabolic risk thresholds; ½ height from height. */
+const MEAS_REF_LINES = [
+  { value: 88, label: '88 cm (waist ref)', stroke: 'rgba(234, 179, 8, 0.8)' },
+  { value: 102, label: '102 cm (waist ref)', stroke: 'rgba(239, 68, 68, 0.8)' },
+]
+
+function MeasurementTrendChart({ measList, formatShortDate, heightCm }) {
+  const list = Array.isArray(measList) ? measList : []
+  const byName = {}
+  list.forEach((m) => {
+    if (!byName[m.name]) byName[m.name] = []
+    byName[m.name].push({ date: m.date, value: m.value })
+  })
+  const names = Object.keys(byName).sort()
+  names.forEach((name) => {
+    byName[name].sort((a, b) => new Date(a.date) - new Date(b.date))
+  })
+  const allPoints = list.length ? list : []
+  if (allPoints.length < 2 || names.length === 0) {
+    return <p className="muted small">Add at least two measurement entries to see the trend graph.</p>
+  }
+  const { width, height } = CHART_VIEWBOX
+  const dates = [...new Set(allPoints.map((m) => m.date))].sort((a, b) => new Date(a) - new Date(b))
+  const minX = new Date(dates[0]).getTime()
+  const maxX = new Date(dates[dates.length - 1]).getTime()
+  let minY = Math.min(...allPoints.map((m) => m.value))
+  let maxY = Math.max(...allPoints.map((m) => m.value))
+
+  // Reference lines: 88, 102 cm; and ½ height (waist-to-height) if height set
+  const refLines = [...MEAS_REF_LINES]
+  if (heightCm != null && heightCm > 0) {
+    const halfHeight = Math.round(heightCm / 2)
+    refLines.push({ value: halfHeight, label: `½ height (${halfHeight} cm)`, stroke: 'rgba(34, 197, 94, 0.7)' })
+  }
+  const refValues = refLines.map((r) => r.value)
+  const pad = 2
+  minY = Math.min(minY, ...refValues) - pad
+  maxY = Math.max(maxY, ...refValues) + pad
+
+  const rangeY = maxY - minY || 1
+  const padding = { top: 16, right: 16, bottom: 40, left: 48 }
+  const innerW = width - padding.left - padding.right
+  const innerH = height - padding.top - padding.bottom
+  const x = (dateKey) => padding.left + (innerW * (new Date(dateKey).getTime() - minX)) / (maxX - minX || 1)
+  const y = (v) => padding.top + innerH - (innerH * (v - minY)) / rangeY
+
+  const yTicks = niceTicks(minY, maxY, 5)
+  const xTickCount = Math.min(6, dates.length)
+  const xTickDates = xTickCount <= 1 ? [dates[0]] : Array.from({ length: xTickCount }, (_, i) => dates[Math.round((i / (xTickCount - 1)) * (dates.length - 1))])
+  const formatDate = formatShortDate || ((key) => key.slice(5))
+
+  return (
+    <div className="trend-chart-wrap">
+      <svg viewBox={`0 0 ${width} ${height}`} className="trend-chart-svg" preserveAspectRatio="xMidYMid meet">
+        {/* Reference lines (waist / ½ height); labels staggered across chart so they don’t overlap */}
+        {refLines.map((ref, refIdx) => {
+          const labelX = padding.left + innerW * (0.35 + (refIdx / Math.max(1, refLines.length - 1)) * 0.6)
+          return (
+            <g key={ref.label}>
+              <line
+                x1={padding.left}
+                y1={y(ref.value)}
+                x2={padding.left + innerW}
+                y2={y(ref.value)}
+                stroke={ref.stroke}
+                strokeWidth="1"
+                strokeDasharray="4 3"
+              />
+              <text x={labelX} y={y(ref.value)} className="trend-chart-ref-label" textAnchor="middle" dominantBaseline="middle">
+                {ref.label}
+              </text>
+            </g>
+          )
+        })}
+        {/* Y-axis */}
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + innerH} className="trend-chart-axis" />
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line x1={padding.left} y1={y(v)} x2={padding.left + innerW} y2={y(v)} className="trend-chart-grid" />
+            <text x={padding.left - 6} y={y(v)} className="trend-chart-tick" textAnchor="end" dominantBaseline="middle">{v.toFixed(0)}</text>
+          </g>
+        ))}
+        {/* X-axis */}
+        <line x1={padding.left} y1={padding.top + innerH} x2={padding.left + innerW} y2={padding.top + innerH} className="trend-chart-axis" />
+        {xTickDates.map((d) => (
+          <text key={d} x={x(d)} y={padding.top + innerH + 20} className="trend-chart-tick" textAnchor="middle">{formatDate(d)}</text>
+        ))}
+        {names.map((name, idx) => {
+          const points = byName[name]
+          if (points.length < 2) return null
+          const pathD = points.map((r, i) => `${i === 0 ? 'M' : 'L'} ${x(r.date)} ${y(r.value)}`).join(' ')
+          const color = MEAS_CHART_COLORS[idx % MEAS_CHART_COLORS.length]
+          return <path key={name} d={pathD} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        })}
+      </svg>
+      <p className="trend-chart-axis-label trend-chart-y-label">Measurements (cm)</p>
+      <ul className="trend-chart-legend">
+        {names.map((name, idx) => (
+          <li key={name} style={{ color: MEAS_CHART_COLORS[idx % MEAS_CHART_COLORS.length] }}>{name}</li>
+        ))}
+      </ul>
+      {refLines.length > 0 && (
+        <p className="trend-chart-ref-note muted small">Reference: 88/102 cm = common waist risk thresholds; ½ height = waist-to-height guideline.</p>
+      )}
+    </div>
+  )
+}
+
 export default function Weight() {
   const {
     weight,
@@ -157,6 +485,8 @@ export default function Weight() {
   const [aiError, setAiError] = useState('')
   const [expandWeightLog, setExpandWeightLog] = useState(false)
   const [expandMeasLog, setExpandMeasLog] = useState(false)
+  const [showWeightGraph, setShowWeightGraph] = useState(false)
+  const [showMeasGraph, setShowMeasGraph] = useState(false)
   const [editingWeight, setEditingWeight] = useState(null)
   const [editingMeasurement, setEditingMeasurement] = useState(null)
   const weightList = Array.isArray(weight) ? weight : []
@@ -387,54 +717,78 @@ export default function Weight() {
             {expandWeightLog ? 'Hide all results' : 'Expand to see all results'}
           </button>
           {expandWeightLog && (
-            <div className="card campaign-card expanded-table">
-              <h3>Log 1: The Weight &amp; Mass Campaign</h3>
-              {weightCampaignRows.length > 0 ? (
-                <div className="table-wrap">
-                  <table className="campaign-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Phase</th>
-                        <th>Weight (kg)</th>
-                        <th>Interval Change</th>
-                        <th>Total Loss</th>
-                        <th>% Body Mass Lost</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weightCampaignRows.map((w, i) => {
-                        const prev = i > 0 ? weightCampaignRows[i - 1].value : null
-                        const intervalChange = prev != null ? w.value - prev : null
-                        const totalLoss = referenceWeight != null ? referenceWeight - w.value : null
-                        const pctLost = referenceWeight != null && referenceWeight > 0
-                          ? ((referenceWeight - w.value) / referenceWeight) * 100
-                          : null
-                        return (
-                          <tr key={w.date + i}>
-                            <td>{dateUtils.formatShortDate(w.date)}</td>
-                            <td>{w.phase || '—'}</td>
-                            <td><strong>{w.value}</strong></td>
-                            <td>
-                              {intervalChange != null ? `${intervalChange >= 0 ? '+' : ''}${intervalChange.toFixed(1)} kg` : '—'}
-                            </td>
-                            <td>{totalLoss != null ? `-${totalLoss.toFixed(1)} kg` : '—'}</td>
-                            <td>{pctLost != null ? `${pctLost.toFixed(2)}%` : '—'}</td>
-                            <td>
-                              <button type="button" className="btn btn-ghost small" onClick={() => setEditingWeight({ originalDate: w.date, date: w.date, value: w.value, phase: w.phase || '', note: w.note || '' })}>Edit</button>
-                              {' '}
-                              <button type="button" className="btn btn-ghost small" onClick={() => { if (window.confirm('Delete this weight entry?')) deleteWeight(w.date); setEditingWeight((prev) => (prev?.date === w.date ? null : prev)); }}>Delete</button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="muted">Log weight to see the campaign table.</p>
-              )}
+            <div className="card campaign-card expanded-table campaign-flip">
+              <div className="campaign-flip-inner">
+                {!showWeightGraph && (
+                  <>
+                    <div className="campaign-flip-header">
+                      <h3>Log 1: The Weight &amp; Mass Campaign</h3>
+                      {weightCampaignRows.length >= 2 && (
+                        <p className="pivot-trigger muted small">
+                          <button type="button" className="btn-link" onClick={() => setShowWeightGraph(true)}>
+                            View trend graph
+                          </button>
+                        </p>
+                      )}
+                    </div>
+                    {weightCampaignRows.length > 0 ? (
+                      <div className="table-wrap">
+                        <table className="campaign-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Phase</th>
+                              <th>Weight (kg)</th>
+                              <th>Interval Change</th>
+                              <th>Total Loss</th>
+                              <th>% Body Mass Lost</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {weightCampaignRows.map((w, i) => {
+                              const prev = i > 0 ? weightCampaignRows[i - 1].value : null
+                              const intervalChange = prev != null ? w.value - prev : null
+                              const totalLoss = referenceWeight != null ? referenceWeight - w.value : null
+                              const pctLost = referenceWeight != null && referenceWeight > 0
+                                ? ((referenceWeight - w.value) / referenceWeight) * 100
+                                : null
+                              return (
+                                <tr key={w.date + i}>
+                                  <td>{dateUtils.formatShortDate(w.date)}</td>
+                                  <td>{w.phase || '—'}</td>
+                                  <td><strong>{w.value}</strong></td>
+                                  <td>
+                                    {intervalChange != null ? `${intervalChange >= 0 ? '+' : ''}${intervalChange.toFixed(1)} kg` : '—'}
+                                  </td>
+                                  <td>{totalLoss != null ? `-${totalLoss.toFixed(1)} kg` : '—'}</td>
+                                  <td>{pctLost != null ? `${pctLost.toFixed(2)}%` : '—'}</td>
+                                  <td>
+                                    <button type="button" className="btn btn-ghost small" onClick={() => setEditingWeight({ originalDate: w.date, date: w.date, value: w.value, phase: w.phase || '', note: w.note || '' })}>Edit</button>
+                                    {' '}
+                                    <button type="button" className="btn btn-ghost small" onClick={() => { if (window.confirm('Delete this weight entry?')) deleteWeight(w.date); setEditingWeight((prev) => (prev?.date === w.date ? null : prev)); }}>Delete</button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="muted">Log weight to see the campaign table.</p>
+                    )}
+                  </>
+                )}
+                {showWeightGraph && (
+                  <div className="campaign-graph-panel">
+                    <button type="button" className="btn btn-ghost btn-back" onClick={() => setShowWeightGraph(false)}>
+                      ← Back to table
+                    </button>
+                    <h3>Weight trend</h3>
+                    <WeightTrendChart rows={weightCampaignRows} formatShortDate={dateUtils.formatShortDate} heightCm={personalDetails?.heightCm ?? null} />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -570,9 +924,21 @@ export default function Weight() {
             {expandMeasLog ? 'Hide all results' : 'Expand to see all results'}
           </button>
           {expandMeasLog && (
-            <div className="card campaign-card expanded-table">
-              <h3>Log 2: The Volume &amp; Measurement Delta</h3>
-              {measNames.length > 0 && measDates.length > 0 ? (
+            <div className="card campaign-card expanded-table campaign-flip">
+              <div className="campaign-flip-inner">
+                {!showMeasGraph && (
+                  <>
+                    <div className="campaign-flip-header">
+                      <h3>Log 2: The Volume &amp; Measurement Delta</h3>
+                      {measList.length >= 2 && (
+                        <p className="pivot-trigger muted small">
+                          <button type="button" className="btn-link" onClick={() => setShowMeasGraph(true)}>
+                            View trend graph
+                          </button>
+                        </p>
+                      )}
+                    </div>
+                    {measNames.length > 0 && measDates.length > 0 ? (
                 <div className="table-wrap">
                   <table className="campaign-table measurement-delta">
                     <thead>
@@ -682,6 +1048,18 @@ export default function Weight() {
                   </div>
                 </>
               )}
+                  </>
+                )}
+                {showMeasGraph && (
+                  <div className="campaign-graph-panel">
+                    <button type="button" className="btn btn-ghost btn-back" onClick={() => setShowMeasGraph(false)}>
+                      ← Back to table
+                    </button>
+                    <h3>Measurements trend</h3>
+                    <MeasurementTrendChart measList={measList} formatShortDate={dateUtils.formatShortDate} heightCm={personalDetails?.heightCm ?? null} />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { useHealth } from './store/HealthContext'
 import ProfileGate from './components/ProfileGate'
 import Dashboard from './pages/Dashboard'
@@ -11,13 +11,19 @@ import Readme from './pages/Readme'
 import Personal from './pages/Personal'
 import './App.css'
 
+// Use HashRouter when: (1) Capacitor, or (2) deployed with a base path (e.g. GitHub Pages)
+// so that 404.html redirect to #/path works and in-app navigation doesn't need server config.
+const hasBasePath = typeof import.meta.env.BASE_URL === 'string' && import.meta.env.BASE_URL !== './'
+const useHashRouter = typeof window !== 'undefined' && (window.Capacitor || hasBasePath)
+const Router = useHashRouter ? HashRouter : BrowserRouter
+
 export default function App() {
   const { profileCode } = useHealth()
   if (!profileCode) {
     return <ProfileGate />
   }
   return (
-    <BrowserRouter>
+    <Router>
       <div className="app">
         <nav className="nav">
           <div className="nav-center">
@@ -50,6 +56,6 @@ export default function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </Router>
   )
 }

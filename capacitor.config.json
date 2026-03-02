@@ -1,0 +1,11 @@
+{
+  "appId": "com.bodyhealthapp.app",
+  "appName": "Body Health",
+  "webDir": "dist",
+  "android": {
+    "path": "android-app"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

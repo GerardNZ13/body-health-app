@@ -9,6 +9,23 @@ export function bmi(weightKg, heightCm) {
   return weightKg / (h * h)
 }
 
+/** Weight (kg) at a given BMI for a height. Used to draw BMI bands on weight charts. */
+export function weightAtBmi(bmi, heightCm) {
+  if (bmi == null || heightCm == null || heightCm <= 0) return null
+  const h = heightCm / 100
+  return bmi * (h * h)
+}
+
+/** BMI band boundaries and labels for chart overlay (WHO-style). */
+export const BMI_BANDS = [
+  { bmiMax: 18.5, label: 'Underweight', color: 'rgba(59, 130, 246, 0.2)' },
+  { bmiMax: 25, label: 'Healthy', color: 'rgba(34, 197, 94, 0.2)' },
+  { bmiMax: 30, label: 'Overweight', color: 'rgba(234, 179, 8, 0.25)' },
+  { bmiMax: 35, label: 'Obese I', color: 'rgba(249, 115, 22, 0.2)' },
+  { bmiMax: 40, label: 'Obese II', color: 'rgba(239, 68, 68, 0.2)' },
+  { bmiMax: null, label: 'Obese III', color: 'rgba(185, 28, 28, 0.25)' }, // no max
+]
+
 /**
  * BMI category. Returns { label, shortTip } — friendly, evidence-based.
  */

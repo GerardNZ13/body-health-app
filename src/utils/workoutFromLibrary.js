@@ -74,6 +74,37 @@ function filterByEquipment(arr, userEquipment) {
   return arr.filter((e) => exerciseMatchesEquipment(e, userEquipment))
 }
 
+/** Simple seeded random: same seed → same sequence. Used so workout order varies by day but not every click. */
+function seededRandom(seed) {
+  let s = 0
+  for (let i = 0; i < (seed || '').length; i++) s = (s << 5) - s + seed.charCodeAt(i)
+  return function next() {
+    s = Math.imul(48271, s) >>> 0
+    return (s & 0x7fffffff) / 0x7fffffff
+  }
+}
+
+/** Shuffle array in place using a seeded RNG so order is stable for the same seed (e.g. same day). */
+function shuffleWithSeed(arr, dateKey) {
+  if (!arr?.length || !dateKey) return arr
+  const rng = seededRandom(dateKey)
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+/**
+ * Max exercise counts per tier by work-level scale.
+ * none = full range; light = reduced (high work level, e.g. steps already met); minimal = rest day (1–2 per tier).
+ */
+const TIER_CAPS = {
+  none: { bronze: 4, gold: 5, platinum: 6 },
+  light: { bronze: 2, gold: 3, platinum: 3 },
+  minimal: { bronze: 2, gold: 1, platinum: 0 },
+}
+
 /**
  * @param {string} sessionType - Push | Pull | Legs | Mobility | Cardio
  * @param {number|null} currentWeightKg - Unused; tiers are ability-based. Kept for API compat.
@@ -81,9 +112,11 @@ function filterByEquipment(arr, userEquipment) {
  * @param {object|null} customLibrary - Override library or null
  * @param {string[]} userEquipment - Equipment you have (filters suggested exercises)
  * @param {string|null} goalExerciseLevel - Preferred tier from Personal details (Bronze|Gold|Platinum)
+ * @param {string|null} dateKey - Optional YYYY-MM-DD for seeded shuffle so suggestions vary by day but not every click
+ * @param {'none'|'light'|'minimal'} workLevelScale - From work level: none = full range, light = reduced, minimal = rest-day range
  * @returns {{ bronze, gold, platinum, note?, sessionType }}
  */
-export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs = [], customLibrary = null, userEquipment = [], goalExerciseLevel = null) {
+export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs = [], customLibrary = null, userEquipment = [], goalExerciseLevel = null, dateKey = null, workLevelScale = 'none') {
   const library = customLibrary || EXERCISES_BASELINE
   const key = getLibraryKey(sessionType)
   const category = library[key]
@@ -97,14 +130,24 @@ export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs =
     }
   }
 
-  // Tier counts: Bronze 2–4 (all core), Gold 3–5 (most core, rest builders), Platinum 4–6 (2/3–3/4 core).
-  // Library is ordered core first, so slice to max count after equipment filter.
-  const BRONZE_MAX = 4
-  const GOLD_MAX = 5
-  const PLATINUM_MAX = 6
-  let bronze = filterByEquipment(category.bronze || [], userEquipment).slice(0, BRONZE_MAX)
-  let gold = filterByEquipment(category.gold || [], userEquipment).slice(0, GOLD_MAX)
-  let platinum = filterByEquipment(category.platinum || [], userEquipment).slice(0, PLATINUM_MAX)
+  const caps = TIER_CAPS[workLevelScale] || TIER_CAPS.none
+  const BRONZE_MAX = caps.bronze
+  const GOLD_MAX = caps.gold
+  const PLATINUM_MAX = caps.platinum
+
+  // Filter by equipment, then shuffle by date so we don't repeat the same order every day, then slice.
+  const seed = dateKey ? `${dateKey}-${sessionType}` : null
+  let bronze = filterByEquipment([...(category.bronze || [])], userEquipment)
+  let gold = filterByEquipment([...(category.gold || [])], userEquipment)
+  let platinum = filterByEquipment([...(category.platinum || [])], userEquipment)
+  if (seed) {
+    bronze = shuffleWithSeed(bronze, seed + '-bronze')
+    gold = shuffleWithSeed(gold, seed + '-gold')
+    platinum = shuffleWithSeed(platinum, seed + '-platinum')
+  }
+  bronze = bronze.slice(0, BRONZE_MAX)
+  gold = gold.slice(0, GOLD_MAX)
+  platinum = platinum.slice(0, PLATINUM_MAX)
 
   const tiersLogged = recentLogs.map((l) => {
     if (l.exercisesDone?.length) {
@@ -145,6 +188,13 @@ export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs =
   }
   if (!note) {
     note = 'Choose the tier that matches your ability and how you feel today—not your weight.'
+  }
+
+  // Work level: scaled-down range when steps are already met or rest is recommended.
+  if (workLevelScale === 'minimal') {
+    note = 'Today we recommend rest. If you still want to move, keep it very light (e.g. mobility or a short walk).\n\n' + note
+  } else if (workLevelScale === 'light') {
+    note = 'Suggestions are in a lower range today because you’ve already hit your steps—pick only what feels good.\n\n' + note
   }
 
   return { sessionType, bronze, gold, platinum, note: note || undefined }

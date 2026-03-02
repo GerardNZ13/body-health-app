@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Health Connect Steps</string>
+    <string name="checking_permission">Checking permission…</string>
+    <string name="need_permission">Grant Steps permission in Health Connect</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="reading_steps">Reading steps…</string>
+    <string name="done">Done</string>
+    <string name="steps_placeholder">—</string>
+    <string name="steps_format">%d steps today</string>
+    <string name="error">Error: %s</string>
+    <string name="button_sync">Refresh steps</string>
+</resources>
