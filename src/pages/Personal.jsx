@@ -48,6 +48,8 @@ export default function Personal() {
 
   const [stepsSyncLoading, setStepsSyncLoading] = useState(false)
   const [stepsSyncError, setStepsSyncError] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
   const [equipmentOpen, setEquipmentOpen] = useState(false)
   const [switchCode, setSwitchCode] = useState('')
   const [age, setAge] = useState(personalDetails?.age?.toString() ?? '')
@@ -176,37 +178,58 @@ export default function Personal() {
       </p>
 
       <section className="card profile-section">
-        <h3>Your profile</h3>
-        <p className="muted small">Use this code on another device to load your data. <strong>Keep it private</strong>—anyone with this code can open your profile on a device where they can access this app. Data stays only in this browser; we never send it to a server.</p>
-        <div className="profile-code-row">
-          <code className="profile-code">{profileCode}</code>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => navigator.clipboard?.writeText(profileCode)}
-          >
-            Copy
+        <button
+          type="button"
+          className="personal-dropdown-toggle"
+          onClick={() => setProfileOpen((o) => !o)}
+          aria-expanded={profileOpen}
+          aria-controls="profile-dropdown-panel"
+        >
+          <span className="personal-dropdown-label">Your profile</span>
+          <span className="personal-dropdown-icon" aria-hidden>{profileOpen ? '▼' : '▶'}</span>
+        </button>
+        <div id="profile-dropdown-panel" className={`personal-dropdown-panel ${profileOpen ? 'is-open' : ''}`}>
+          <p className="muted small">Use this code on another device to load your data. <strong>Keep it private</strong>—anyone with this code can open your profile on a device where they can access this app. Data stays only in this browser; we never send it to a server.</p>
+          <div className="profile-code-row">
+            <code className="profile-code">{profileCode}</code>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigator.clipboard?.writeText(profileCode)}
+            >
+              Copy
+            </button>
+          </div>
+          <form onSubmit={handleSwitchProfile} className="profile-switch-form">
+            <input
+              type="text"
+              placeholder="Enter another code"
+              value={switchCode}
+              onChange={(e) => setSwitchCode(e.target.value.toUpperCase())}
+              className="profile-switch-input"
+              maxLength={12}
+            />
+            <button type="submit" className="btn btn-ghost btn-sm">Load that profile</button>
+          </form>
+          <button type="button" className="btn btn-ghost btn-sm profile-leave" onClick={clearProfile}>
+            Leave profile (return to login)
           </button>
         </div>
-        <form onSubmit={handleSwitchProfile} className="profile-switch-form">
-          <input
-            type="text"
-            placeholder="Enter another code"
-            value={switchCode}
-            onChange={(e) => setSwitchCode(e.target.value.toUpperCase())}
-            className="profile-switch-input"
-            maxLength={12}
-          />
-          <button type="submit" className="btn btn-ghost btn-sm">Load that profile</button>
-        </form>
-        <button type="button" className="btn btn-ghost btn-sm profile-leave" onClick={clearProfile}>
-          Leave profile (return to login)
-        </button>
       </section>
 
       <section className="card backup-section">
-        <h3>Backup &amp; migrate data</h3>
-        <p className="muted small">Export all data for this profile (weight, measurements, nutrition, exercise, settings, optional API key). Use the file on another PC or browser: open this app there, create or pick any profile, then Import. <strong>Exports contain sensitive data—store and share only in a safe place.</strong></p>
+        <button
+          type="button"
+          className="personal-dropdown-toggle"
+          onClick={() => setBackupOpen((o) => !o)}
+          aria-expanded={backupOpen}
+          aria-controls="backup-dropdown-panel"
+        >
+          <span className="personal-dropdown-label">Backup &amp; migrate data</span>
+          <span className="personal-dropdown-icon" aria-hidden>{backupOpen ? '▼' : '▶'}</span>
+        </button>
+        <div id="backup-dropdown-panel" className={`personal-dropdown-panel ${backupOpen ? 'is-open' : ''}`}>
+          <p className="muted small">Export all data for this profile (weight, measurements, nutrition, exercise, settings, optional API key). Use the file on another PC or browser: open this app there, create or pick any profile, then Import. <strong>Exports contain sensitive data—store and share only in a safe place.</strong></p>
         <div className="backup-actions">
           <button
             type="button"
@@ -255,10 +278,11 @@ export default function Personal() {
           </label>
         </div>
         {importMessage.text && (
-          <p className={`small ${importMessage.type === 'success' ? 'snapshot-green' : 'snapshot-red'}`}>
-            {importMessage.text}
-          </p>
-        )}
+            <p className={`small ${importMessage.type === 'success' ? 'snapshot-green' : 'snapshot-red'}`}>
+              {importMessage.text}
+            </p>
+          )}
+        </div>
       </section>
 
       <section className="card personal-details-card">

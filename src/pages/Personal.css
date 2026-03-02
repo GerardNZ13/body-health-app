@@ -126,13 +126,44 @@
   padding: 0.35rem 0;
 }
 
-.profile-section h3 {
+/* Dropdown toggles (Your profile, Backup & migrate data) */
+.personal-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
   margin: 0 0 0.25rem 0;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-sm);
 }
-.profile-section > .muted {
-  margin-bottom: 0.75rem;
+.personal-dropdown-toggle:hover {
+  color: var(--accent);
 }
-.profile-section .profile-code-row {
+.personal-dropdown-icon {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.personal-dropdown-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease-out;
+}
+.personal-dropdown-panel.is-open {
+  max-height: 600px;
+}
+.personal-dropdown-panel > .muted.small:first-child {
+  margin-top: 0.5rem;
+}
+
+.profile-section .profile-code-row,
+.backup-section .profile-code-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
