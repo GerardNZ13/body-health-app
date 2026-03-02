@@ -43,13 +43,11 @@ const defaultState = {
   /** Log 2: The Volume & Measurement Delta. Each entry: { date, name, value, unit } */
   log2MeasurementDelta: [],
   exerciseGoals: {
-    stepsDaily: 6000,
-    /** Activity ring: daily goal in kcal (e.g. 300) */
-    activityKcalDaily: 300,
-    /** Workout time ring: daily goal in minutes (e.g. 30) */
-    workoutMinsDaily: 30,
-    /** Movement hourly ring: daily goal in hours (e.g. 8) */
-    movementHoursDaily: 8,
+    /** Steps / rings only shown on Exercise when set in Personal (0 = hidden) */
+    stepsDaily: 0,
+    activityKcalDaily: 0,
+    workoutMinsDaily: 0,
+    movementHoursDaily: 0,
     pplRotation: [],
     customGoals: [],
     equipment: [],
@@ -79,7 +77,7 @@ const defaultState = {
   exerciseSuggestion: null,
   /** Custom exercise library from "Update workout suggestions" (AI). Same shape as exercises.js. Null = use baseline. */
   customExerciseLibrary: null,
-  /** Body check-ins: one per day. Each entry: { date: 'YYYY-MM-DD', regions: { [regionId]: number 0-10 } } */
+  /** Body check-ins: one per day. Each entry: { date: 'YYYY-MM-DD', regions: { [regionId]: 'none'|'sore'|'iffy'|'painful'|'weak' } } */
   bodyCheckIns: [],
   /** Personal details: used for BMI, rate-of-loss, insights and AI. */
   personalDetails: {

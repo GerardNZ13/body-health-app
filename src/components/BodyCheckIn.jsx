@@ -1,17 +1,24 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { BODY_REGIONS, getRegionsByView } from '../data/bodyRegions'
+import { BODY_REGIONS, FEELING_OPTIONS, getRegionsByGroup } from '../data/bodyRegions'
 import './BodyCheckIn.css'
 
-const VIEWBOX = '0 0 100 280'
+/** Normalize stored value: support old 0–10 numbers for backwards compat */
+function normalizeValue(val) {
+  if (val == null) return null
+  if (typeof val === 'string' && FEELING_OPTIONS.some((f) => f.id === val)) return val
+  const n = Number(val)
+  if (!Number.isNaN(n)) {
+    if (n === 0) return 'none'
+    if (n <= 3) return 'sore'
+    if (n <= 5) return 'iffy'
+    if (n <= 8) return 'painful'
+    return 'weak'
+  }
+  return null
+}
 
-/** Simple body outline path (front and back) for visual context. */
-const BODY_OUTLINE_FRONT = 'M 50 4 A 16 18 0 0 1 50 36 L 28 38 Q 18 52 22 72 L 28 118 L 30 200 L 32 260 L 38 278 L 50 278 L 62 278 L 68 260 L 70 200 L 72 118 L 78 72 Q 82 52 72 38 Z'
-const BODY_OUTLINE_BACK = 'M 50 4 A 16 18 0 0 1 50 36 L 28 40 Q 20 55 24 75 L 30 120 L 32 200 L 34 258 L 50 278 L 66 258 L 68 200 L 70 120 L 76 75 Q 80 55 72 40 Z'
-
-export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn }) {
-  const [view, setView] = useState('front')
+export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn, noRingsAbove = false }) {
   const [localRegions, setLocalRegions] = useState(regions)
-  const [activeRegion, setActiveRegion] = useState(null)
 
   useEffect(() => {
     setLocalRegions(regions)
@@ -25,137 +32,81 @@ export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn }) {
     [dateKey, setBodyCheckIn]
   )
 
-  const handleRegionClick = useCallback(
-    (regionId) => {
-      setActiveRegion(regionId)
-    },
-    []
-  )
-
-  const setRegionLevel = useCallback(
-    (regionId, level) => {
+  const setRegionFeeling = useCallback(
+    (regionId, feelingId) => {
       const next = { ...localRegions }
-      if (level === 0) {
+      if (feelingId === 'none') {
         delete next[regionId]
       } else {
-        next[regionId] = level
+        next[regionId] = feelingId
       }
       persist(next)
-      setActiveRegion(null)
     },
     [localRegions, persist]
   )
 
   const clearAll = useCallback(() => {
     persist({})
-    setActiveRegion(null)
   }, [persist])
 
-  const regionsForView = getRegionsByView(view)
-  const outlinePath = view === 'front' ? BODY_OUTLINE_FRONT : BODY_OUTLINE_BACK
-  const hasAny = Object.keys(localRegions).length > 0
+  const grouped = getRegionsByGroup()
+  const hasAny = Object.keys(localRegions).filter((id) => {
+    const v = normalizeValue(localRegions[id])
+    return v && v !== 'none'
+  }).length > 0
 
   return (
-    <div className="body-check-in">
+    <div className={`body-check-in ${noRingsAbove ? 'body-check-in-no-rings-above' : ''}`}>
       <p className="body-check-in-intro muted small">
-        Tap an area that&apos;s sore or tight, then rate discomfort 0–10. We&apos;ll use this to tailor today&apos;s workout.
+        Pick any area that&apos;s sore or tight and choose how it feels. We&apos;ll use this to tailor today&apos;s workout.
       </p>
 
-      <div className="body-check-in-view-toggle">
-        <button
-          type="button"
-          className={`btn btn-sm ${view === 'front' ? 'active' : ''}`}
-          onClick={() => setView('front')}
-          aria-pressed={view === 'front'}
-        >
-          Front
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${view === 'back' ? 'active' : ''}`}
-          onClick={() => setView('back')}
-          aria-pressed={view === 'back'}
-        >
-          Back
-        </button>
-      </div>
-
-      <div className="body-check-in-map-wrap">
-        <svg
-          className="body-check-in-svg"
-          viewBox={VIEWBOX}
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          <path
-            className="body-check-in-outline"
-            d={outlinePath}
-            fill="var(--body-outline-fill, rgba(0,0,0,0.06))"
-            stroke="var(--body-outline-stroke, rgba(0,0,0,0.08))"
-            strokeWidth="0.5"
-          />
-          {regionsForView.map((region) => {
-            const level = localRegions[region.id] ?? 0
-            const isActive = activeRegion === region.id
-            const hasValue = level > 0
-            return (
-              <g key={region.id}>
-                <circle
-                  className={`body-check-in-zone ${hasValue ? 'has-value' : ''} ${isActive ? 'active' : ''}`}
-                  cx={region.cx}
-                  cy={region.cy}
-                  r={region.r}
-                  data-region-id={region.id}
-                  data-level={level}
-                  onClick={() => handleRegionClick(region.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      handleRegionClick(region.id)
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${region.label}, discomfort ${level}/10`}
-                />
-              </g>
-            )
-          })}
-        </svg>
-      </div>
-
-      {activeRegion && (
-        <div className="body-check-in-rating" role="dialog" aria-label="Rate discomfort">
-          <span className="body-check-in-rating-label">
-            {BODY_REGIONS.find((r) => r.id === activeRegion)?.label ?? activeRegion}
-          </span>
-          <div className="body-check-in-rating-buttons">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={`btn btn-sm ${(localRegions[activeRegion] ?? 0) === n ? 'active' : ''}`}
-                onClick={() => setRegionLevel(activeRegion, n)}
-                aria-pressed={(localRegions[activeRegion] ?? 0) === n}
-              >
-                {n}
-              </button>
-            ))}
+      <div className="body-check-in-list">
+        {grouped.map(({ group, regions: groupRegions }) => (
+          <div key={group} className="body-check-in-section">
+            <h4 className="body-check-in-section-title">{group}</h4>
+            <ul className="body-check-in-items">
+              {groupRegions.map((region) => {
+                const feeling = normalizeValue(localRegions[region.id])
+                return (
+                  <li key={region.id} className="body-check-in-row">
+                    <span className="body-check-in-label">{region.label}</span>
+                    <div className="body-check-in-feelings-inline" role="group" aria-label={`${region.label}, how it feels`}>
+                      {FEELING_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className={`body-check-in-feel-btn body-check-in-feel-${opt.id} ${feeling === opt.id ? 'active' : ''}`}
+                          onClick={() => setRegionFeeling(region.id, opt.id)}
+                          aria-pressed={feeling === opt.id}
+                          title={opt.description}
+                        >
+                          {opt.short}
+                        </button>
+                      ))}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-          <p className="muted small">0 = fine, 10 = severe</p>
-        </div>
-      )}
+        ))}
+      </div>
 
       {hasAny && (
         <div className="body-check-in-summary">
           <span className="muted small">Noted: </span>
           {Object.entries(localRegions)
-            .filter(([, v]) => v > 0)
-            .map(([id, level]) => {
+            .filter(([, v]) => {
+              const f = normalizeValue(v)
+              return f && f !== 'none'
+            })
+            .map(([id, val]) => {
               const r = BODY_REGIONS.find((x) => x.id === id)
+              const feeling = FEELING_OPTIONS.find((f) => f.id === normalizeValue(val))
               return (
-                <span key={id} className="body-check-in-tag">
-                  {r?.label ?? id} {level}/10
+                <span key={id} className={`body-check-in-tag body-check-in-tag-${normalizeValue(val)}`}>
+                  {r?.label ?? id} — {feeling?.label ?? val}
                 </span>
               )
             })}

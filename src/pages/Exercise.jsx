@@ -38,10 +38,12 @@ export default function Exercise() {
   const todayKey = dateUtils.getTodayKey()
   const todayLog = exerciseLogs.find((l) => l.date === todayKey)
   const latestWeight = weight.length ? weight[weight.length - 1].value : null
-  const stepsGoal = exerciseGoals.stepsDaily ?? 6000
-  const activityKcalGoal = exerciseGoals.activityKcalDaily ?? 300
-  const workoutMinsGoal = exerciseGoals.workoutMinsDaily ?? 30
-  const movementHoursGoal = exerciseGoals.movementHoursDaily ?? 8
+  const stepsGoal = exerciseGoals.stepsDaily ?? 0
+  const activityKcalGoal = exerciseGoals.activityKcalDaily ?? 0
+  const workoutMinsGoal = exerciseGoals.workoutMinsDaily ?? 0
+  const movementHoursGoal = exerciseGoals.movementHoursDaily ?? 0
+  const hasAnyRingGoal = stepsGoal > 0 || activityKcalGoal > 0 || workoutMinsGoal > 0 || movementHoursGoal > 0
+  const stepsGoalForWorkLevel = stepsGoal > 0 ? stepsGoal : 6000
 
   const [stepsInput, setStepsInput] = useState(todayLog?.steps?.toString() ?? '')
   const [activityKcalInput, setActivityKcalInput] = useState(todayLog?.activityKcal?.toString() ?? '')
@@ -69,7 +71,7 @@ export default function Exercise() {
   const recentTierLogs = workoutLogsOnly.slice(-10)
 
   const workoutDoneToday = !!(todayLog?.workoutType && todayLog.workoutType !== 'Rest')
-  const workLevel = getWorkLevel(todayLog?.steps ?? 0, stepsGoal, workoutDoneToday, {
+  const workLevel = getWorkLevel(todayLog?.steps ?? 0, stepsGoalForWorkLevel, workoutDoneToday, {
     recentLogs: exerciseLogs,
     todayKey,
     ringGoals: { activityKcalDaily: activityKcalGoal, workoutMinsDaily: workoutMinsGoal, movementHoursDaily: movementHoursGoal },
@@ -80,7 +82,7 @@ export default function Exercise() {
     },
   })
   const workLevelScale = getWorkLevelScale(workLevel.level, workLevel.recommendation, workLevel.trend)
-  const fullRestSuggestion = getSuggestFullRestDay(exerciseLogs, todayKey, stepsGoal, {
+  const fullRestSuggestion = getSuggestFullRestDay(exerciseLogs, todayKey, stepsGoalForWorkLevel, {
     activityKcalDaily: activityKcalGoal,
     workoutMinsDaily: workoutMinsGoal,
     movementHoursDaily: movementHoursGoal,
@@ -223,63 +225,76 @@ export default function Exercise() {
         Today&apos;s suggested workout (Bronze / Gold / Platinum) and logging. Steps + activity rings met daily = baseline success; PPL fits into your workout time goal.
       </p>
 
-      {/* Steps + rings, then How's the body, then flip: suggestion ↔ log */}
+      {/* Steps + rings only when goals set in Personal; then How's the body, then flip */}
       <section className="card suggestion-card">
-        <p className="muted small steps-rings-hint">Steps + rings: set goals on Personal. Log below.</p>
-        <div className="steps-and-rings">
-          <div className="steps-ring-box suggestion-steps-box">
-            <span className="suggestion-steps-label">Steps</span>
-            <span className="suggestion-steps-value">
-              {(todayLog?.steps ?? 0).toLocaleString()} / {stepsGoal.toLocaleString()}
-            </span>
-            <div className="suggestion-steps-bar">
-              <div className="suggestion-steps-fill" style={{ width: `${stepsGoal ? Math.min(100, ((todayLog?.steps ?? 0) / stepsGoal) * 100) : 0}%` }} />
+        {hasAnyRingGoal && (
+          <>
+            <p className="muted small steps-rings-hint">Steps + rings: set goals on Personal. Log below.</p>
+            <div className="steps-and-rings">
+              {stepsGoal > 0 && (
+                <div className="steps-ring-box suggestion-steps-box">
+                  <span className="suggestion-steps-label">Steps</span>
+                  <span className="suggestion-steps-value">
+                    {(todayLog?.steps ?? 0).toLocaleString()} / {stepsGoal.toLocaleString()}
+                  </span>
+                  <div className="suggestion-steps-bar">
+                    <div className="suggestion-steps-fill" style={{ width: `${Math.min(100, ((todayLog?.steps ?? 0) / stepsGoal) * 100)}%` }} />
+                  </div>
+                  <form onSubmit={handleLogSteps} className="suggestion-steps-form">
+                    <input type="number" min="0" value={stepsInput} onChange={(e) => setStepsInput(e.target.value)} placeholder="Log" aria-label="Steps today" />
+                    <button type="submit" className="btn btn-sm" disabled={stepsInput === ''}>{todayLog ? 'Update' : 'Log'}</button>
+                  </form>
+                </div>
+              )}
+              {activityKcalGoal > 0 && (
+                <div className="steps-ring-box">
+                  <span className="ring-label">Activity</span>
+                  <span className="ring-value">{(todayLog?.activityKcal ?? 0)} / {activityKcalGoal} kcal</span>
+                  <div className="ring-bar">
+                    <div className="ring-fill ring-fill-activity" style={{ width: `${Math.min(100, ((todayLog?.activityKcal ?? 0) / activityKcalGoal) * 100)}%` }} />
+                  </div>
+                  <form onSubmit={(e) => handleLogRing(e, 'activityKcal', activityKcalInput, setActivityKcalInput)} className="ring-form">
+                    <input type="number" min="0" value={activityKcalInput} onChange={(e) => setActivityKcalInput(e.target.value)} placeholder="Log" aria-label="Activity kcal" />
+                    <button type="submit" className="btn btn-sm" disabled={activityKcalInput === ''}>Log</button>
+                  </form>
+                </div>
+              )}
+              {workoutMinsGoal > 0 && (
+                <div className="steps-ring-box">
+                  <span className="ring-label">Workout</span>
+                  <span className="ring-value">{(todayLog?.workoutMins ?? 0)} / {workoutMinsGoal} min</span>
+                  <div className="ring-bar">
+                    <div className="ring-fill ring-fill-workout" style={{ width: `${Math.min(100, ((todayLog?.workoutMins ?? 0) / workoutMinsGoal) * 100)}%` }} />
+                  </div>
+                  <form onSubmit={(e) => handleLogRing(e, 'workoutMins', workoutMinsInput, setWorkoutMinsInput)} className="ring-form">
+                    <input type="number" min="0" value={workoutMinsInput} onChange={(e) => setWorkoutMinsInput(e.target.value)} placeholder="Log" aria-label="Workout minutes" />
+                    <button type="submit" className="btn btn-sm" disabled={workoutMinsInput === ''}>Log</button>
+                  </form>
+                </div>
+              )}
+              {movementHoursGoal > 0 && (
+                <div className="steps-ring-box">
+                  <span className="ring-label">Movement</span>
+                  <span className="ring-value">{(todayLog?.movementHours ?? 0)} / {movementHoursGoal} hrs</span>
+                  <div className="ring-bar">
+                    <div className="ring-fill ring-fill-movement" style={{ width: `${Math.min(100, ((todayLog?.movementHours ?? 0) / movementHoursGoal) * 100)}%` }} />
+                  </div>
+                  <form onSubmit={(e) => handleLogRing(e, 'movementHours', movementHoursInput, setMovementHoursInput)} className="ring-form">
+                    <input type="number" min="0" step="0.5" value={movementHoursInput} onChange={(e) => setMovementHoursInput(e.target.value)} placeholder="Log" aria-label="Movement hours" />
+                    <button type="submit" className="btn btn-sm" disabled={movementHoursInput === ''}>Log</button>
+                  </form>
+                </div>
+              )}
             </div>
-            <form onSubmit={handleLogSteps} className="suggestion-steps-form">
-              <input type="number" min="0" value={stepsInput} onChange={(e) => setStepsInput(e.target.value)} placeholder="Log" aria-label="Steps today" />
-              <button type="submit" className="btn btn-sm" disabled={stepsInput === ''}>{todayLog ? 'Update' : 'Log'}</button>
-            </form>
-          </div>
-          <div className="steps-ring-box">
-            <span className="ring-label">Activity</span>
-            <span className="ring-value">{(todayLog?.activityKcal ?? 0)} / {activityKcalGoal} kcal</span>
-            <div className="ring-bar">
-              <div className="ring-fill ring-fill-activity" style={{ width: `${activityKcalGoal ? Math.min(100, ((todayLog?.activityKcal ?? 0) / activityKcalGoal) * 100) : 0}%` }} />
-            </div>
-            <form onSubmit={(e) => handleLogRing(e, 'activityKcal', activityKcalInput, setActivityKcalInput)} className="ring-form">
-              <input type="number" min="0" value={activityKcalInput} onChange={(e) => setActivityKcalInput(e.target.value)} placeholder="Log" aria-label="Activity kcal" />
-              <button type="submit" className="btn btn-sm" disabled={activityKcalInput === ''}>Log</button>
-            </form>
-          </div>
-          <div className="steps-ring-box">
-            <span className="ring-label">Workout</span>
-            <span className="ring-value">{(todayLog?.workoutMins ?? 0)} / {workoutMinsGoal} min</span>
-            <div className="ring-bar">
-              <div className="ring-fill ring-fill-workout" style={{ width: `${workoutMinsGoal ? Math.min(100, ((todayLog?.workoutMins ?? 0) / workoutMinsGoal) * 100) : 0}%` }} />
-            </div>
-            <form onSubmit={(e) => handleLogRing(e, 'workoutMins', workoutMinsInput, setWorkoutMinsInput)} className="ring-form">
-              <input type="number" min="0" value={workoutMinsInput} onChange={(e) => setWorkoutMinsInput(e.target.value)} placeholder="Log" aria-label="Workout minutes" />
-              <button type="submit" className="btn btn-sm" disabled={workoutMinsInput === ''}>Log</button>
-            </form>
-          </div>
-          <div className="steps-ring-box">
-            <span className="ring-label">Movement</span>
-            <span className="ring-value">{(todayLog?.movementHours ?? 0)} / {movementHoursGoal} hrs</span>
-            <div className="ring-bar">
-              <div className="ring-fill ring-fill-movement" style={{ width: `${movementHoursGoal ? Math.min(100, ((todayLog?.movementHours ?? 0) / movementHoursGoal) * 100) : 0}%` }} />
-            </div>
-            <form onSubmit={(e) => handleLogRing(e, 'movementHours', movementHoursInput, setMovementHoursInput)} className="ring-form">
-              <input type="number" min="0" step="0.5" value={movementHoursInput} onChange={(e) => setMovementHoursInput(e.target.value)} placeholder="Log" aria-label="Movement hours" />
-              <button type="submit" className="btn btn-sm" disabled={movementHoursInput === ''}>Log</button>
-            </form>
-          </div>
-        </div>
+          </>
+        )}
 
-        <h3 className="body-check-in-heading">How&apos;s the body?</h3>
+        <h3 className={`body-check-in-heading ${!hasAnyRingGoal ? 'body-check-in-first' : ''}`}>How&apos;s the body?</h3>
         <BodyCheckIn
           dateKey={todayKey}
           regions={bodyCheckIns?.find((c) => c.date === todayKey)?.regions ?? {}}
           setBodyCheckIn={setBodyCheckIn}
+          noRingsAbove={!hasAnyRingGoal}
         />
 
         <div className="suggestion-card-flip">

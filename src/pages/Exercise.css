@@ -90,6 +90,10 @@
   font-size: 1rem;
 }
 
+.body-check-in-heading.body-check-in-first {
+  margin-top: 0;
+}
+
 .suggestion-card .suggestion-controls {
   display: flex;
   gap: 0.5rem;
