@@ -7,12 +7,24 @@ function dataKey(code) {
   return `${STORAGE_KEY}-data-${code}`
 }
 
-/** Generate a short unique profile code (8 chars, easy to type: A–Z + 2–9). */
+/** Alphanumeric set that avoids ambiguous chars (no 0/O, 1/I/L). */
+const PROFILE_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/** Generate a profile code (10 chars). Uses crypto.getRandomValues when available for secure randomness. */
 export function generateProfileCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const length = 10
+  const chars = PROFILE_CODE_CHARS
   let code = ''
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  const array = new Uint32Array(length)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(array)
+    for (let i = 0; i < length; i++) {
+      code += chars.charAt(array[i] % chars.length)
+    }
+  } else {
+    for (let i = 0; i < length; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
   }
   return code
 }
@@ -81,6 +93,30 @@ const defaultState = {
     /** IANA timezone e.g. Pacific/Auckland; used for "today" and all date display. */
     timeZone: 'Pacific/Auckland',
   },
+}
+
+/** Export file format version for import validation and future migrations. */
+export const EXPORT_VERSION = 1
+
+/** Build the payload we persist for a profile (no profileCode). */
+function buildPersistPayload(state) {
+  return {
+    log1WeightCampaign: state.log1WeightCampaign,
+    log2MeasurementDelta: state.log2MeasurementDelta,
+    exerciseGoals: state.exerciseGoals,
+    exerciseLogs: state.exerciseLogs,
+    bodyCheckIns: state.bodyCheckIns || [],
+    nutritionLogs: state.nutritionLogs,
+    nutritionTargets: state.nutritionTargets,
+    nutritionFavourites: state.nutritionFavourites,
+    nutritionMealCombos: state.nutritionMealCombos,
+    exerciseSuggestion: state.exerciseSuggestion,
+    customExerciseLibrary: state.customExerciseLibrary,
+    lastWorkoutResult: state.lastWorkoutResult,
+    personalDetails: state.personalDetails,
+    aiApiKey: state.aiApiKey,
+    aiProvider: state.aiProvider,
+  }
 }
 
 /** Migrate parsed blob to full state shape (no profileCode in blob). */
@@ -216,23 +252,7 @@ function loadState() {
 function saveState(state) {
   if (!state.profileCode) return
   try {
-    const toSave = {
-      log1WeightCampaign: state.log1WeightCampaign,
-      log2MeasurementDelta: state.log2MeasurementDelta,
-      exerciseGoals: state.exerciseGoals,
-      exerciseLogs: state.exerciseLogs,
-      bodyCheckIns: state.bodyCheckIns || [],
-      nutritionLogs: state.nutritionLogs,
-      nutritionTargets: state.nutritionTargets,
-      nutritionFavourites: state.nutritionFavourites,
-      nutritionMealCombos: state.nutritionMealCombos,
-      exerciseSuggestion: state.exerciseSuggestion,
-      customExerciseLibrary: state.customExerciseLibrary,
-      lastWorkoutResult: state.lastWorkoutResult,
-      personalDetails: state.personalDetails,
-      aiApiKey: state.aiApiKey,
-      aiProvider: state.aiProvider,
-    }
+    const toSave = buildPersistPayload(state)
     localStorage.setItem(dataKey(state.profileCode), JSON.stringify(toSave))
     localStorage.setItem(STORAGE_KEY_CURRENT, state.profileCode)
   } catch (_) {}
@@ -492,6 +512,48 @@ export function HealthProvider({ children }) {
       localStorage.removeItem(STORAGE_KEY_CURRENT)
     } catch (_) {}
   }, [])
+
+  /** Export all data for the current profile as a JSON-serializable object (for backup / migrate to another device). */
+  const exportProfileData = useCallback(() => {
+    if (!state.profileCode) return null
+    return {
+      version: EXPORT_VERSION,
+      profileCode: state.profileCode,
+      exportedAt: new Date().toISOString(),
+      data: buildPersistPayload(state),
+    }
+  }, [state])
+
+  /**
+   * Import from a previously exported JSON object. Validates format, migrates data, then switches to that profile.
+   * Returns { ok: true } or { ok: false, error: string }.
+   */
+  const importProfileData = useCallback((parsed) => {
+    if (!parsed || typeof parsed !== 'object') {
+      return { ok: false, error: 'Invalid file: not an object.' }
+    }
+    if (parsed.version !== EXPORT_VERSION) {
+      return { ok: false, error: `Unsupported export version (got ${parsed.version}, expected ${EXPORT_VERSION}).` }
+    }
+    const code = parsed.profileCode
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return { ok: false, error: 'Invalid file: missing profile code.' }
+    }
+    const data = parsed.data
+    if (!data || typeof data !== 'object') {
+      return { ok: false, error: 'Invalid file: missing data.' }
+    }
+    try {
+      const migrated = migrateParsedState(data)
+      dispatch({
+        type: 'REHYDRATE',
+        payload: { ...migrated, profileCode: code.trim().toUpperCase() },
+      })
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: e?.message || 'Failed to import data.' }
+    }
+  }, [])
   const setAiInsights = useCallback((insights) => {
     dispatch({ type: 'SET_AI_INSIGHTS', payload: insights })
   }, [])
@@ -544,6 +606,8 @@ export function HealthProvider({ children }) {
     createProfile,
     loadProfile,
     clearProfile,
+    exportProfileData,
+    importProfileData,
   }
 
   return <HealthContext.Provider value={value}>{children}</HealthContext.Provider>

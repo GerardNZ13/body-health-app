@@ -34,7 +34,7 @@ const EQUIPMENT_OPTIONS = [
 ]
 
 export default function Personal() {
-  const { profileCode, weight, personalDetails, exerciseGoals, exerciseLogs = [], nutritionLogs = [], setPersonalDetails, setGoals, loadProfile, clearProfile, logExercise, updateExerciseLog } = useHealth()
+  const { profileCode, weight, personalDetails, exerciseGoals, exerciseLogs = [], nutritionLogs = [], setPersonalDetails, setGoals, loadProfile, clearProfile, logExercise, updateExerciseLog, exportProfileData, importProfileData } = useHealth()
   const userEquipment = exerciseGoals?.equipment || []
   const dateUtils = useDateUtils()
   const todayKey = dateUtils.getTodayKey()
@@ -58,6 +58,7 @@ export default function Personal() {
   const [activityKcalDaily, setActivityKcalDaily] = useState((exerciseGoals?.activityKcalDaily ?? 300).toString())
   const [workoutMinsDaily, setWorkoutMinsDaily] = useState((exerciseGoals?.workoutMinsDaily ?? 30).toString())
   const [movementHoursDaily, setMovementHoursDaily] = useState((exerciseGoals?.movementHoursDaily ?? 8).toString())
+  const [importMessage, setImportMessage] = useState({ type: null, text: '' })
 
   useEffect(() => {
     setAge(personalDetails?.age?.toString() ?? '')
@@ -173,7 +174,7 @@ export default function Personal() {
 
       <section className="card profile-section">
         <h3>Your profile</h3>
-        <p className="muted small">Use this code on another device to load your data. Keep it private.</p>
+        <p className="muted small">Use this code on another device to load your data. <strong>Keep it private</strong>—anyone with this code can open your profile on a device where they can access this app. Data stays only in this browser; we never send it to a server.</p>
         <div className="profile-code-row">
           <code className="profile-code">{profileCode}</code>
           <button
@@ -198,6 +199,63 @@ export default function Personal() {
         <button type="button" className="btn btn-ghost btn-sm profile-leave" onClick={clearProfile}>
           Leave profile (return to login)
         </button>
+      </section>
+
+      <section className="card backup-section">
+        <h3>Backup &amp; migrate data</h3>
+        <p className="muted small">Export all data for this profile (weight, measurements, nutrition, exercise, settings, optional API key). Use the file on another PC or browser: open this app there, create or pick any profile, then Import. <strong>Exports contain sensitive data—store and share only in a safe place.</strong></p>
+        <div className="backup-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              const blob = exportProfileData()
+              if (!blob) return
+              const url = URL.createObjectURL(new Blob([JSON.stringify(blob, null, 2)], { type: 'application/json' }))
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `body-health-export-${new Date().toISOString().slice(0, 10)}.json`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+          >
+            Export all data
+          </button>
+          <label className="btn btn-ghost import-label">
+            Import from file
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="import-input"
+              onChange={(e) => {
+                setImportMessage({ type: null, text: '' })
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = () => {
+                  try {
+                    const parsed = JSON.parse(reader.result)
+                    const result = importProfileData(parsed)
+                    if (result.ok) {
+                      setImportMessage({ type: 'success', text: 'Data imported. You’re now using the profile from the file.' })
+                    } else {
+                      setImportMessage({ type: 'error', text: result.error })
+                    }
+                  } catch (_) {
+                    setImportMessage({ type: 'error', text: 'Invalid JSON file. Use an export from this app.' })
+                  }
+                }
+                reader.readAsText(file)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        {importMessage.text && (
+          <p className={`small ${importMessage.type === 'success' ? 'snapshot-green' : 'snapshot-red'}`}>
+            {importMessage.text}
+          </p>
+        )}
       </section>
 
       <section className="card personal-details-card">

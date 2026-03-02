@@ -3,10 +3,11 @@ import { useHealth, generateProfileCode } from '../store/HealthContext'
 import './ProfileGate.css'
 
 export default function ProfileGate() {
-  const { createProfile, loadProfile } = useHealth()
+  const { createProfile, loadProfile, importProfileData } = useHealth()
   const [codeInput, setCodeInput] = useState('')
   const [error, setError] = useState('')
   const [newCode, setNewCode] = useState(null)
+  const [importMessage, setImportMessage] = useState(null)
 
   const handleCreate = useCallback(() => {
     setError('')
@@ -81,7 +82,7 @@ export default function ProfileGate() {
               <input
                 type="text"
                 className="profile-gate-input"
-                placeholder="e.g. A1B2C3D4"
+                placeholder="e.g. A1B2C3D4E5"
                 value={codeInput}
                 onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                 maxLength={12}
@@ -92,6 +93,44 @@ export default function ProfileGate() {
                 Load my data
               </button>
             </form>
+            <div className="profile-gate-divider">
+              <span className="muted small">or restore from backup</span>
+            </div>
+            <label className="profile-gate-import-btn btn btn-ghost">
+              Import from file
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="profile-gate-import-input"
+                onChange={(e) => {
+                  setError('')
+                  setImportMessage(null)
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    try {
+                      const parsed = JSON.parse(reader.result)
+                      const result = importProfileData(parsed)
+                      if (result.ok) {
+                        setImportMessage({ type: 'success', text: 'Data imported. Opening your profile.' })
+                      } else {
+                        setImportMessage({ type: 'error', text: result.error })
+                      }
+                    } catch (_) {
+                      setImportMessage({ type: 'error', text: 'Invalid JSON. Use an export from this app.' })
+                    }
+                  }
+                  reader.readAsText(file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {importMessage && (
+              <p className={importMessage.type === 'success' ? 'profile-gate-import-ok' : 'profile-gate-error'} role="alert">
+                {importMessage.text}
+              </p>
+            )}
             {error && <p className="profile-gate-error" role="alert">{error}</p>}
           </>
         )}

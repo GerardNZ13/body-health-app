@@ -53,6 +53,23 @@
   font-size: 0.875rem;
 }
 
+.profile-gate-import-btn {
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+.profile-gate-import-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+.profile-gate-import-ok {
+  margin: 0.75rem 0 0;
+  color: var(--green, #0a0);
+  font-size: 0.875rem;
+}
+
 .profile-gate-new {
   display: flex;
   flex-direction: column;

@@ -171,6 +171,24 @@
   color: var(--text-muted);
 }
 
+.backup-section .backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.backup-section .import-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+.backup-section .import-label {
+  cursor: pointer;
+  margin: 0;
+}
+
 .personal-page .steps-connect-card h3 {
   margin: 0 0 0.35rem 0;
 }
