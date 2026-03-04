@@ -4,6 +4,17 @@ import './Changelog.css'
 
 const ENTRIES = [
   {
+    version: '1.2.0',
+    date: '2026-03',
+    items: [
+      "Exercise: How's the body? — Daily check-in with grouped body areas (Head & neck, Upper body, Core, Hips & thighs, Legs). Choose how each area feels: No issue, Muscle sore, Iffy/niggle, Painful, Weak. Data is stored per day.",
+      "Exercise: Collapsible body-check-in sections with arrow toggle. Only Head & neck is open by default; after you pick a feeling in a section, it auto-collapses and the next section opens.",
+      "Exercise: Flippable flow — How's the body? is shown first; tap Done — show workout suggestion to see today's workout. Workout suggestion is gated behind the body check-in step (back link to How's the body).",
+      'Exercise: Steps / Activity / Workout / Movement rings only appear when you set at least one of those goals in Personal. New profiles start with goals at 0 so the rings stay hidden until you configure them.',
+      "Exercise: Workout suggestions adapt to your body check-in. Get workout and Get AI suggestion both use today's check-in: they prefer exercises that are easier on areas you noted (e.g. knee sore → glute bridge, wall sit, reverse lunge prioritised; heavy squats deprioritised). A note confirms when suggestions are adapted.",
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2025-02',
     items: [

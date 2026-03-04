@@ -5,7 +5,7 @@ A **personal** health app that combines weight/measurements, exercise goals, and
 ## What it does
 
 - **Weight & body** — Log weight and body measurements (chest, waist, hips, etc.). View trends and get **AI insights** (optional OpenAI API key) based on your history.
-- **Exercise** — Set a daily steps goal (e.g. 6k) and track it. Log **Push / Pull / Legs** workouts and see the suggested next day. Uses your latest weight and measurements for context.
+- **Exercise** — Start with **How's the body?**: pick body areas and how they feel (No issue, Sore, Iffy, Painful, Weak). Then get **Today's workout suggestion** (Push / Pull / Legs / Mobility / Cardio, Bronze–Platinum tiers). Suggestions adapt to what you reported (e.g. easier on sore knees). Steps and activity rings appear only when you set goals in **Personal**.
 - **Nutrition** — Search or barcode-scan foods using **Open Food Facts** (real nutrition data). Set daily targets and get a **red / orange / green** snapshot for today and weekly average.
 
 All data stays in your browser (localStorage). No account or server required.
@@ -32,7 +32,7 @@ On **Weight & body**, you can use **Google Gemini** or **OpenAI**. Insights are 
 
 ## Customise
 
-- **Targets** — Edit daily calories and macros in **Nutrition** (Daily targets). Edit steps goal in **Exercise**.
+- **Targets** — Edit daily calories and macros in **Nutrition** (Daily targets). Set steps, activity kcal, workout minutes, and movement hours in **Personal**; those rings then show on the Exercise page.
 - **Measurements** — Use any of the preset body measurement names or add more in `Weight.jsx` (`MEASUREMENT_NAMES`).
 
 ## GitHub Pages

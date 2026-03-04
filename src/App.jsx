@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter, HashRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { useHealth } from './store/HealthContext'
 import ProfileGate from './components/ProfileGate'
+import WelcomeTutorial, { getTutorialSeen } from './components/WelcomeTutorial'
 import Dashboard from './pages/Dashboard'
 import Weight from './pages/Weight'
 import Exercise from './pages/Exercise'
@@ -19,6 +20,14 @@ const Router = useHashRouter ? HashRouter : BrowserRouter
 
 export default function App() {
   const { profileCode } = useHealth()
+  const [showTutorial, setShowTutorial] = useState(false)
+
+  useEffect(() => {
+    if (profileCode && !getTutorialSeen(profileCode)) {
+      setShowTutorial(true)
+    }
+  }, [profileCode])
+
   if (!profileCode) {
     return <ProfileGate />
   }
@@ -44,6 +53,9 @@ export default function App() {
             </NavLink>
           </div>
         </nav>
+        {showTutorial && (
+          <WelcomeTutorial profileCode={profileCode} onDismiss={() => setShowTutorial(false)} />
+        )}
         <main className="main">
           <Routes>
             <Route path="/" element={<Dashboard />} />
