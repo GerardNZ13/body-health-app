@@ -3,6 +3,8 @@
  * Uses the Holistic Body & Mind Coach context (see src/config/coachContext.js).
  */
 import { COACH_SYSTEM_PROMPT } from '../config/coachContext.js'
+import { BODY_REGIONS, FEELING_OPTIONS } from '../data/bodyRegions.js'
+import { formatBodyCheckInForPrompt } from '../utils/bodyAdaptation.js'
 
 function buildUserPrompt(weight = [], measurements = [], personalDetails = null) {
   const recentWeight = weight.slice(-30).map((w) => `${w.date}: ${w.value} kg${w.phase ? ` [${w.phase}]` : ''}${w.note ? ` (${w.note})` : ''}`).join('\n')
@@ -95,8 +97,8 @@ export async function fetchAiInsights(provider, apiKey, { weight = [], measureme
   throw new Error(`Unknown provider: ${provider}`)
 }
 
-/** Build user prompt for workout suggestion (Exercise page). Uses weight + workout type + recent tier history + work level. */
-function buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs = [], stepsToday, workLevel = null) {
+/** Build user prompt for workout suggestion (Exercise page). Uses weight + workout type + recent tier history + work level + optional body check-in. */
+function buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs = [], stepsToday, workLevel = null, bodyCheckInSummary = null) {
   const recentWithTier = exerciseLogs
     .filter((l) => l.workoutType)
     .slice(-10)
@@ -105,21 +107,27 @@ function buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs = [], st
   const workLevelLine = workLevel
     ? `\nWork level today: **${workLevel.label}** — ${workLevel.description}${workLevel.recommendation === 'rest' ? ' If they still want something, suggest only very light mobility or a short stretch; otherwise recommend rest.' : workLevel.level === 'high' ? ' Suggest a lighter, shorter range than usual (e.g. fewer exercises, lower tier emphasis).' : ''}\n`
     : ''
+  const bodyLine = bodyCheckInSummary
+    ? `\nThey reported how their body feels: **${bodyCheckInSummary}** — Prefer exercises that don't load those areas heavily; suggest mobility, gentler progressions, or alternatives (e.g. if knee/adductor are sore on Legs day, suggest glute bridge, wall sit, reverse lunge rather than heavy squats).\n`
+    : ''
   return `The user is asking for TODAY'S WORKOUT SUGGESTION.
 
 Workout type for this session: **${workoutType}**
 Current weight: **${currentWeightKg != null ? currentWeightKg + ' kg' : 'unknown (log weight on Weight & Body page)'}**
 Today's steps so far: ${stepsToday != null ? stepsToday : 'not logged'}
-${workLevelLine}
+${workLevelLine}${bodyLine}
 Recent sessions (type and tier they did):
 ${recentWithTier || 'No recent workout logs with tier yet.'}
 
 Respond with a concrete workout in Bronze / Gold / Platinum+ format. For each tier, list specific exercises appropriate for their current weight (e.g. wall push-up vs knee vs full push-up for Push day). Use their equipment: 4 kg and 6 kg kettlebells. If they have been doing mostly Gold lately, include a clear progression so Platinum becomes the next target. End with one List D (mobility) cool-down and a Leg Health reminder if steps are high or they reported fatigue. Plain text only, no markdown.`
 }
 
-export async function fetchExerciseSuggestion(provider, apiKey, { workoutType, weight = [], exerciseLogs = [], stepsToday, workLevel = null }) {
+export async function fetchExerciseSuggestion(provider, apiKey, { workoutType, weight = [], exerciseLogs = [], stepsToday, workLevel = null, bodyCheckIn = null }) {
   const currentWeightKg = weight.length ? weight[weight.length - 1].value : null
-  const userPrompt = buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs, stepsToday, workLevel)
+  const bodyCheckInSummary = bodyCheckIn && typeof bodyCheckIn === 'object' && Object.keys(bodyCheckIn).length > 0
+    ? formatBodyCheckInForPrompt(bodyCheckIn, BODY_REGIONS, FEELING_OPTIONS)
+    : null
+  const userPrompt = buildExercisePrompt(workoutType, currentWeightKg, exerciseLogs, stepsToday, workLevel, bodyCheckInSummary)
   if (provider === 'openai') {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

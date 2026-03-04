@@ -131,6 +131,23 @@
 .update-library-row .muted { flex: 1; min-width: 200px; }
 
 /* In-place swap (like Add food → Pick from favourites); no 3D so both panels align at top */
+.body-suggestion-flip {
+  position: relative;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.body-check-in-panel {
+  margin-bottom: 0;
+}
+
+.body-check-in-next {
+  margin: 1rem 0 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
 .suggestion-card-flip {
   position: relative;
   border-top: 1px solid var(--border);

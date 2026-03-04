@@ -24,16 +24,53 @@
   background: var(--surface, rgba(0, 0, 0, 0.03));
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.body-check-in-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.body-check-in-section-header:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.body-check-in-section-arrow {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .body-check-in-section-title {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
+}
+
+.body-check-in-section-content {
+  border-top: 1px solid var(--border);
+}
+
+.body-check-in-section-content[hidden] {
+  display: none;
+}
+
+.body-check-in-section-content .body-check-in-items {
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
 }
 
 .body-check-in-items {

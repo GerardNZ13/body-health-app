@@ -4,6 +4,7 @@
  * Returns structured Bronze / Gold / Platinum lists and an optional note.
  */
 import { EXERCISES_BASELINE, getLibraryKey } from '../data/exercises.js'
+import { getSoreCanonicalRegions, sortExercisesByBodyCheckIn } from './bodyAdaptation.js'
 
 /**
  * Map exercise equipment string to tags we can match against user equipment.
@@ -114,9 +115,10 @@ const TIER_CAPS = {
  * @param {string|null} goalExerciseLevel - Preferred tier from Personal details (Bronze|Gold|Platinum)
  * @param {string|null} dateKey - Optional YYYY-MM-DD for seeded shuffle so suggestions vary by day but not every click
  * @param {'none'|'light'|'minimal'} workLevelScale - From work level: none = full range, light = reduced, minimal = rest-day range
+ * @param {Record<string, string>|null} bodyCheckIn - Today's "How's the body" regions: { knee_l: 'painful', ... }. Used to prefer/avoid exercises.
  * @returns {{ bronze, gold, platinum, note?, sessionType }}
  */
-export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs = [], customLibrary = null, userEquipment = [], goalExerciseLevel = null, dateKey = null, workLevelScale = 'none') {
+export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs = [], customLibrary = null, userEquipment = [], goalExerciseLevel = null, dateKey = null, workLevelScale = 'none', bodyCheckIn = null) {
   const library = customLibrary || EXERCISES_BASELINE
   const key = getLibraryKey(sessionType)
   const category = library[key]
@@ -135,7 +137,9 @@ export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs =
   const GOLD_MAX = caps.gold
   const PLATINUM_MAX = caps.platinum
 
-  // Filter by equipment, then shuffle by date so we don't repeat the same order every day, then slice.
+  const soreCanonical = bodyCheckIn && typeof bodyCheckIn === 'object' ? getSoreCanonicalRegions(bodyCheckIn) : []
+
+  // Filter by equipment, then shuffle, then sort by body check-in (prefer kinder options when something's sore), then slice.
   const seed = dateKey ? `${dateKey}-${sessionType}` : null
   let bronze = filterByEquipment([...(category.bronze || [])], userEquipment)
   let gold = filterByEquipment([...(category.gold || [])], userEquipment)
@@ -144,6 +148,11 @@ export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs =
     bronze = shuffleWithSeed(bronze, seed + '-bronze')
     gold = shuffleWithSeed(gold, seed + '-gold')
     platinum = shuffleWithSeed(platinum, seed + '-platinum')
+  }
+  if (soreCanonical.length > 0) {
+    bronze = sortExercisesByBodyCheckIn(bronze, key, soreCanonical)
+    gold = sortExercisesByBodyCheckIn(gold, key, soreCanonical)
+    platinum = sortExercisesByBodyCheckIn(platinum, key, soreCanonical)
   }
   bronze = bronze.slice(0, BRONZE_MAX)
   gold = gold.slice(0, GOLD_MAX)
@@ -188,6 +197,10 @@ export function getWorkoutFromLibrary(sessionType, currentWeightKg, recentLogs =
   }
   if (!note) {
     note = 'Choose the tier that matches your ability and how you feel today—not your weight.'
+  }
+
+  if (soreCanonical.length > 0) {
+    note = 'Suggestions prioritise options that are easier on the areas you noted. ' + note
   }
 
   // Work level: scaled-down range when steps are already met or rest is recommended.

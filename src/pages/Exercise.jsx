@@ -60,6 +60,7 @@ export default function Exercise() {
   const [quickLogSets, setQuickLogSets] = useState({})
   const [quickLogDurationMins, setQuickLogDurationMins] = useState('')
   const [logWorkoutOpen, setLogWorkoutOpen] = useState(false)
+  const [showWorkoutSuggestion, setShowWorkoutSuggestion] = useState(false)
   const [workoutHistoryOpen, setWorkoutHistoryOpen] = useState(false)
 
   const workoutLogsOnly = exerciseLogs.filter((l) => l.workoutType && l.workoutType !== 'Rest')
@@ -88,6 +89,8 @@ export default function Exercise() {
     movementHoursDaily: movementHoursGoal,
   })
 
+  const todayBodyCheckIn = bodyCheckIns?.find((c) => c.date === todayKey)?.regions ?? {}
+
   const getWorkoutFromLibraryClick = useCallback(() => {
     setSuggestionError('')
     const workout = getWorkoutFromLibrary(
@@ -98,7 +101,8 @@ export default function Exercise() {
       userEquipment,
       personalDetails?.goalExerciseLevel || null,
       todayKey,
-      workLevelScale
+      workLevelScale,
+      todayBodyCheckIn
     )
     let text = formatWorkoutForDisplay(workout)
     if (workoutMinsGoal > 0) text += `\n\nTarget: complete within your daily workout time goal (${workoutMinsGoal} min).`
@@ -106,7 +110,7 @@ export default function Exercise() {
     setLastWorkoutResult({ ...workout, sessionType: suggestionType })
     setQuickLogChecked({})
     setQuickLogSets({})
-  }, [suggestionType, latestWeight, recentTierLogs, customExerciseLibrary, userEquipment, personalDetails?.goalExerciseLevel, todayKey, workLevelScale, workoutMinsGoal, setExerciseSuggestion, setLastWorkoutResult])
+  }, [suggestionType, latestWeight, recentTierLogs, customExerciseLibrary, userEquipment, personalDetails?.goalExerciseLevel, todayKey, workLevelScale, workoutMinsGoal, todayBodyCheckIn, setExerciseSuggestion, setLastWorkoutResult])
 
   const getWorkoutFromAi = useCallback(async () => {
     const key = aiApiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('body-health-app-data-apikey') : null)
@@ -123,6 +127,7 @@ export default function Exercise() {
         exerciseLogs,
         stepsToday: todayLog?.steps ?? null,
         workLevel,
+        bodyCheckIn: todayBodyCheckIn,
       })
       setExerciseSuggestion(text)
     } catch (err) {
@@ -289,17 +294,33 @@ export default function Exercise() {
           </>
         )}
 
-        <h3 className={`body-check-in-heading ${!hasAnyRingGoal ? 'body-check-in-first' : ''}`}>How&apos;s the body?</h3>
-        <BodyCheckIn
-          dateKey={todayKey}
-          regions={bodyCheckIns?.find((c) => c.date === todayKey)?.regions ?? {}}
-          setBodyCheckIn={setBodyCheckIn}
-          noRingsAbove={!hasAnyRingGoal}
-        />
+        <div className="body-suggestion-flip">
+          {!showWorkoutSuggestion && (
+            <div className="body-check-in-panel add-food-pivot">
+              <h3 className={`body-check-in-heading ${!hasAnyRingGoal ? 'body-check-in-first' : ''}`}>How&apos;s the body?</h3>
+              <BodyCheckIn
+                dateKey={todayKey}
+                regions={bodyCheckIns?.find((c) => c.date === todayKey)?.regions ?? {}}
+                setBodyCheckIn={setBodyCheckIn}
+                noRingsAbove={!hasAnyRingGoal}
+              />
+              <p className="body-check-in-next">
+                <button type="button" className="btn" onClick={() => setShowWorkoutSuggestion(true)}>
+                  Done — show workout suggestion
+                </button>
+              </p>
+            </div>
+          )}
 
-        <div className="suggestion-card-flip">
-          {!logWorkoutOpen && (
+          {showWorkoutSuggestion && !logWorkoutOpen && (
             <div className="suggestion-panel add-food-pivot">
+              <button
+                type="button"
+                className="btn btn-ghost btn-back"
+                onClick={() => setShowWorkoutSuggestion(false)}
+              >
+                ← How&apos;s the body
+              </button>
               <h3>Today&apos;s workout suggestion</h3>
               {fullRestSuggestion.suggest && (
                 <div className="work-level-banner full-rest-banner" role="status">
@@ -351,7 +372,7 @@ export default function Exercise() {
             </div>
           )}
 
-          {logWorkoutOpen && (
+          {showWorkoutSuggestion && logWorkoutOpen && (
             <div className="log-panel add-food-pivot">
             <button
               type="button"

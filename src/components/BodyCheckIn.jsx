@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { BODY_REGIONS, FEELING_OPTIONS, getRegionsByGroup } from '../data/bodyRegions'
+import { BODY_REGIONS, FEELING_OPTIONS, BODY_GROUP_ORDER, getRegionsByGroup } from '../data/bodyRegions'
 import './BodyCheckIn.css'
 
 /** Normalize stored value: support old 0–10 numbers for backwards compat */
@@ -41,6 +41,20 @@ export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn, noR
         next[regionId] = feelingId
       }
       persist(next)
+      // Auto-collapse this section and expand the next
+      const region = BODY_REGIONS.find((r) => r.id === regionId)
+      const currentGroup = region?.group
+      if (currentGroup && BODY_GROUP_ORDER.length) {
+        const idx = BODY_GROUP_ORDER.indexOf(currentGroup)
+        setOpenSections((prev) => {
+          const nextOpen = new Set(prev)
+          nextOpen.delete(currentGroup)
+          if (idx >= 0 && idx < BODY_GROUP_ORDER.length - 1) {
+            nextOpen.add(BODY_GROUP_ORDER[idx + 1])
+          }
+          return nextOpen
+        })
+      }
     },
     [localRegions, persist]
   )
@@ -50,6 +64,16 @@ export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn, noR
   }, [persist])
 
   const grouped = getRegionsByGroup()
+  const [openSections, setOpenSections] = useState(() => new Set(BODY_GROUP_ORDER.length ? [BODY_GROUP_ORDER[0]] : []))
+  const toggleSection = useCallback((group) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+      return next
+    })
+  }, [])
+
   const hasAny = Object.keys(localRegions).filter((id) => {
     const v = normalizeValue(localRegions[id])
     return v && v !== 'none'
@@ -62,9 +86,21 @@ export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn, noR
       </p>
 
       <div className="body-check-in-list">
-        {grouped.map(({ group, regions: groupRegions }) => (
-          <div key={group} className="body-check-in-section">
-            <h4 className="body-check-in-section-title">{group}</h4>
+        {grouped.map(({ group, regions: groupRegions }) => {
+          const isOpen = openSections.has(group)
+          return (
+            <div key={group} className="body-check-in-section">
+              <button
+                type="button"
+                className="body-check-in-section-header"
+                onClick={() => toggleSection(group)}
+                aria-expanded={isOpen}
+                aria-controls={`body-check-in-content-${group.replace(/\s+/g, '-')}`}
+              >
+                <span className="body-check-in-section-arrow" aria-hidden>{isOpen ? '▼' : '▶'}</span>
+                <h4 className="body-check-in-section-title">{group}</h4>
+              </button>
+              <div id={`body-check-in-content-${group.replace(/\s+/g, '-')}`} className="body-check-in-section-content" hidden={!isOpen}>
             <ul className="body-check-in-items">
               {groupRegions.map((region) => {
                 const feeling = normalizeValue(localRegions[region.id])
@@ -89,8 +125,10 @@ export default function BodyCheckIn({ dateKey, regions = {}, setBodyCheckIn, noR
                 )
               })}
             </ul>
-          </div>
-        ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {hasAny && (
